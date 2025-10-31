@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Responses\" />
+    <Folder Include="responses\" />
   </ItemGroup>
 
 </Project>

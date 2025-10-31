@@ -1,8 +1,8 @@
 ﻿using Core.Enums;
-using Managers;
+using Managers.auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Models.requests;
+using Models.requests.auth;
 using Models.SqlEntities;
 
 namespace SmartWeather.Controllers

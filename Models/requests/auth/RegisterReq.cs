@@ -1,7 +1,6 @@
-﻿
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace Models.requests
+namespace Models.requests.auth
 {
     public class RegisterReq
     {
