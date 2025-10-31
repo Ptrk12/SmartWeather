@@ -1,8 +1,11 @@
-using Managers;
+using Managers.auth;
+using Managers.validation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories.SqlContext;
-using SmartWeather.Extensions; 
+using SmartWeather.Extensions;
+using SmartWeather.Filters;
+using SmartWeather.middlewares;
 
 namespace SmartWeather
 {
@@ -12,15 +15,27 @@ namespace SmartWeather
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers(options =>
+            {
+                options.Filters.Add<ValidateModelFilter>();
+            })
+                .ConfigureApiBehaviorOptions(options =>
+            {
+                options.SuppressModelStateInvalidFilter = true;
+            });
+
 
             builder.Services.AddScoped<AuthManager>();
+            builder.Services.AddSingleton<ValidationManager>();
+
 
             builder.Services.AddDbContext<SqlDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("Sql")));
 
             builder.Services.AddIdentityAndAuthentication(builder.Configuration);
             builder.Services.AddSwaggerServices();
+
+            builder.Services.AddTransient<ErrorHandlerMiddleware>();
 
             var app = builder.Build();
 
@@ -35,6 +50,8 @@ namespace SmartWeather
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+
+            app.UseMiddleware<ErrorHandlerMiddleware>();
 
             app.UseHttpsRedirection();
 
