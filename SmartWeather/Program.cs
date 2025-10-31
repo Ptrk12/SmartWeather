@@ -1,7 +1,11 @@
+using Interfaces.Managers;
+using Interfaces.Repositories;
+using Managers;
 using Managers.auth;
 using Managers.validation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Repositories;
 using Repositories.SqlContext;
 using SmartWeather.Extensions;
 using SmartWeather.Filters;
@@ -27,6 +31,10 @@ namespace SmartWeather
 
             builder.Services.AddScoped<AuthManager>();
             builder.Services.AddSingleton<ValidationManager>();
+
+            builder.Services.AddScoped<IUserManager, UserManager>();
+            builder.Services.AddScoped<IGroupManager, GroupManager>();
+            builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 
 
             builder.Services.AddDbContext<SqlDbContext>(options =>
