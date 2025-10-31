@@ -7,7 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 
 
-namespace Managers
+namespace Managers.auth
 {
     public class AuthManager
     {
