@@ -28,5 +28,38 @@ namespace SmartWeather.Controllers
 
             return result == true ? Created() : Conflict();
         }
+
+        //ADD authorize later now for test isn't needed
+        [HttpDelete("delete/{groupId}")]
+        public async Task<IActionResult> DeleteGroup(int groupId)
+        {
+            var result = await _groupManager.DeleteGroupAsync(groupId);
+            if (!result.Success)
+            {
+                if (string.IsNullOrEmpty(result.Message))
+                    return NotFound();
+                else
+                    return Conflict(result.Message);
+            }
+            return NoContent();
+        }
+
+        [HttpGet]
+        [Route("{groupId}")]
+        public async Task<IActionResult> GetGroupById(int groupId)
+        {
+            var group = await _groupManager.GetGroupByIdAsync(groupId);
+            if (group == null)
+                return NotFound();
+            return Ok(group);
+        }
+
+        [HttpPut("{groupId}")]
+        public async Task<IActionResult> UpdateGroup(int groupId, CreateGroupReq req)
+        {
+            var result = await _groupManager.UpdateGroupAsync(groupId, req);
+            return result ? NoContent() : Conflict();
+        }
+
     }
 }
