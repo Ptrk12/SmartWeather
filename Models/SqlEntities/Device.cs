@@ -14,9 +14,6 @@ namespace Models.SqlEntities
         [Required]
         public string Location { get; set; }
         public DeviceStatus Status { get; set; } = DeviceStatus.Pending;
-
-        public string ApplicationUserId { get; set; }
-        public virtual ApplicationUser ApplicationUser { get; set; }
         public int GroupId { get; set; }
         public virtual Group Group { get; set; }
         public virtual ICollection<SensorMetric> Metrics { get; set; } = new List<SensorMetric>();

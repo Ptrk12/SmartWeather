@@ -25,6 +25,11 @@ namespace Repositories.SqlContext
                 .Property(g => g.Role)
                 .HasConversion<string>();
 
+            builder.Entity<Device>()
+                .Property(g => g.Status)
+                .HasConversion<string>();
+
+
             builder.Entity<GroupMembership>()
                 .HasKey(x => new { x.GroupId, x.ApplicationUserId });
 
