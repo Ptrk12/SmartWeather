@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Models.SqlEntities;
+using System.Reflection.Emit;
 
 namespace Repositories.SqlContext
 {
@@ -19,6 +20,15 @@ namespace Repositories.SqlContext
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<GroupMembership>()
+                .Property(g => g.Role)
+                .HasConversion<string>();
+
+            builder.Entity<Device>()
+                .Property(g => g.Status)
+                .HasConversion<string>();
+
 
             builder.Entity<GroupMembership>()
                 .HasKey(x => new { x.GroupId, x.ApplicationUserId });
