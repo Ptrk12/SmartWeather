@@ -29,7 +29,7 @@ namespace SmartWeather.Controllers
             return result == true ? Created() : Conflict();
         }
 
-        //ADD authorize later now for test isn't needed
+        [Authorize(Policy = "GroupAdmin")]
         [HttpDelete("delete/{groupId}")]
         public async Task<IActionResult> DeleteGroup(int groupId)
         {
@@ -44,6 +44,7 @@ namespace SmartWeather.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "GroupAdmin")]
         [HttpGet]
         [Route("{groupId}")]
         public async Task<IActionResult> GetGroupById(int groupId)
@@ -54,6 +55,7 @@ namespace SmartWeather.Controllers
             return Ok(group);
         }
 
+        [Authorize(Policy = "GroupAdmin")]
         [HttpPut("{groupId}")]
         public async Task<IActionResult> UpdateGroup(int groupId, CreateGroupReq req)
         {
