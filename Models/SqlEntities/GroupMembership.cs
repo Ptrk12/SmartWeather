@@ -12,6 +12,6 @@ namespace Models.SqlEntities
 
         public string ApplicationUserId { get; set; }
         public virtual ApplicationUser ApplicationUser { get; set; }
-        public GroupRole Role { get; set; } = GroupRole.Member;
+        public GroupRole Role { get; set; }
     }
 }
