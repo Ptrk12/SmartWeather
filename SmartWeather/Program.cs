@@ -6,8 +6,10 @@ using Managers.validation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Repositories;
 using Repositories.SqlContext;
+using Serilog;
 using SmartWeather.Extensions;
 using SmartWeather.filters;
 using SmartWeather.Filters;
@@ -21,70 +23,98 @@ namespace SmartWeather
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddHttpContextAccessor();
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(builder.Configuration)
+                .CreateLogger();
 
-            builder.Services.AddAuthorization(options =>
+            builder.Host.UseSerilog();
+            try
             {
-                options.AddPolicy("AllRoles", policy =>
-                    policy.Requirements.Add(new RoleRequirement("Member", "Admin")));
+                builder.Services.AddHttpContextAccessor();
 
-                options.AddPolicy("Admin", policy =>
-                    policy.Requirements.Add(new RoleRequirement("Admin")));
-            });
+                builder.Services.AddAuthorization(options =>
+                {
+                    options.AddPolicy("AllRoles", policy =>
+                        policy.Requirements.Add(new RoleRequirement("Member", "Admin")));
 
-            builder.Services.AddControllers(options =>
-            {
-                options.Filters.Add<ValidateModelFilter>();
-            })
-                .ConfigureApiBehaviorOptions(options =>
-            {
-                options.SuppressModelStateInvalidFilter = true;
-            });
+                    options.AddPolicy("Admin", policy =>
+                        policy.Requirements.Add(new RoleRequirement("Admin")));
+                });
 
-
-            builder.Services.AddScoped<AuthManager>();
-            builder.Services.AddSingleton<ValidationManager>();
-            builder.Services.AddScoped<IAuthorizationHandler, RoleHandler>();
-
-            builder.Services.AddScoped<IUserManager, UserManager>();
-            builder.Services.AddScoped<IGroupManager, GroupManager>();
-            builder.Services.AddScoped<IGroupRepository, GroupRepository>();
+                builder.Services.AddControllers(options =>
+                {
+                    options.Filters.Add<ValidateModelFilter>();
+                })
+                    .ConfigureApiBehaviorOptions(options =>
+                    {
+                        options.SuppressModelStateInvalidFilter = true;
+                    });
 
 
-            builder.Services.AddDbContext<SqlDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("Sql")));
+                builder.Services.AddScoped<AuthManager>();
+                builder.Services.AddSingleton<ValidationManager>();
+                builder.Services.AddScoped<IAuthorizationHandler, RoleHandler>();
+                builder.Services.AddSingleton<EfExceptionLoggingInterceptor>();
 
-            builder.Services.AddIdentityAndAuthentication(builder.Configuration);
-            builder.Services.AddSwaggerServices();
+                builder.Services.AddScoped<IUserManager, UserManager>();
+                builder.Services.AddScoped<IGroupManager, GroupManager>();
+                builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 
-            builder.Services.AddTransient<ErrorHandlerMiddleware>();
+                builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
+                {
+                    var loggingInterceptor = serviceProvider.GetRequiredService<EfExceptionLoggingInterceptor>();
 
-            var app = builder.Build();
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("Sql"))
+                           .AddInterceptors(loggingInterceptor);
+                });
+                builder.Services.AddIdentityAndAuthentication(builder.Configuration);
+                builder.Services.AddSwaggerServices();
 
-            using (var scope = app.Services.CreateScope())
-            {
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-                await DbSeeder.SeedRolesAsync(roleManager);
+                builder.Services.AddTransient<ErrorHandlerMiddleware>();
+
+                var app = builder.Build();
+
+                using (var scope = app.Services.CreateScope())
+                {
+                    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+                    await DbSeeder.SeedRolesAsync(roleManager);
+                }
+
+                if (app.Environment.IsDevelopment())
+                {
+                    app.UseSwagger();
+                    app.UseSwaggerUI();
+                }
+
+                app.UseMiddleware<ErrorHandlerMiddleware>();
+
+                app.UseHttpsRedirection();
+
+                app.UseRouting();
+
+                app.UseAuthentication();
+                app.UseAuthorization();
+
+                app.MapControllers();
+
+                try
+                {
+                    Log.Information("Starting an application");
+                    app.Run();
+                }
+                catch (Exception ex)
+                {
+                    Log.Fatal(ex, "Fatal error during running an application");
+                }
+                finally
+                {
+                    Log.CloseAndFlush();
+                }
             }
-
-            if (app.Environment.IsDevelopment())
+            catch (Exception ex)
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                Log.Fatal($"Error: {ex.Message}");
             }
-
-            app.UseMiddleware<ErrorHandlerMiddleware>();
-
-            app.UseHttpsRedirection();
-
-            app.UseRouting();
-
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-
-            app.Run();
         }
     }
 }
