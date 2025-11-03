@@ -59,6 +59,7 @@ namespace SmartWeather
                 builder.Services.AddScoped<IUserManager, UserManager>();
                 builder.Services.AddScoped<IGroupManager, GroupManager>();
                 builder.Services.AddScoped<IGroupRepository, GroupRepository>();
+                builder.Services.AddScoped<IDeviceManager, DeviceManager>();
 
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {
