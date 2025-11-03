@@ -1,15 +1,10 @@
 ﻿
-
 using Models.SqlEntities;
 
 namespace Interfaces.Repositories
 {
-    public interface IGroupRepository
+    public interface IGroupRepository : IGenericCrudRepository<Group>
     {
-        Task<bool> AddGroupAsync(Group req);
-        Task<bool> DeleteGroupAsync(Group group);
-        Task<Group?> GetGroupByIdAsync(int groupId);
-        Task<bool> UpdateGroupAsync(Group group);
         Task<string> GetUserRoleInGroup(string userId, int groupId);
     }
 }
