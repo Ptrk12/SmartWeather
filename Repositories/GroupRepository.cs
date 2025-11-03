@@ -15,6 +15,25 @@ namespace Repositories
             _context = context;
         }
 
+        public async Task<string> GetUserRoleInGroup(string userId, int groupId)
+        {
+            try
+            {
+                var result = await _context.GroupMemberships
+                    .FirstOrDefaultAsync(x => x.ApplicationUserId == userId && x.GroupId == groupId);
+
+                if(result != null)
+                {
+                  return result.Role.ToString();
+                }
+                return string.Empty;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
         public async Task<bool> AddGroupAsync(Group req)
         {
             try
