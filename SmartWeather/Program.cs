@@ -25,10 +25,10 @@ namespace SmartWeather
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("GroupMember", policy =>
+                options.AddPolicy("AllRoles", policy =>
                     policy.Requirements.Add(new RoleRequirement("Member", "Admin")));
 
-                options.AddPolicy("GroupAdmin", policy =>
+                options.AddPolicy("Admin", policy =>
                     policy.Requirements.Add(new RoleRequirement("Admin")));
             });
 
