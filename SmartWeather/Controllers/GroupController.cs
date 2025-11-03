@@ -29,7 +29,7 @@ namespace SmartWeather.Controllers
             return result == true ? Created() : Conflict();
         }
 
-        [Authorize(Policy = "GroupAdmin")]
+        [Authorize(Policy = "Admin")]
         [HttpDelete("delete/{groupId}")]
         public async Task<IActionResult> DeleteGroup(int groupId)
         {
@@ -44,7 +44,7 @@ namespace SmartWeather.Controllers
             return NoContent();
         }
 
-        [Authorize(Policy = "GroupAdmin")]
+        [Authorize(Policy = "AllRoles")]
         [HttpGet]
         [Route("{groupId}")]
         public async Task<IActionResult> GetGroupById(int groupId)
@@ -55,7 +55,7 @@ namespace SmartWeather.Controllers
             return Ok(group);
         }
 
-        [Authorize(Policy = "GroupAdmin")]
+        [Authorize(Policy = "Admin")]
         [HttpPut("{groupId}")]
         public async Task<IActionResult> UpdateGroup(int groupId, CreateGroupReq req)
         {
