@@ -18,8 +18,15 @@ namespace SmartWeather.Controllers
 
         [Authorize(Policy = "Admin")]
         [HttpPost("add")]
-        public async Task<IActionResult> AddGroup(CreateDeviceReq req,int groupId)
+        public async Task<IActionResult> AddGroup([FromForm]CreateDeviceReq req,int groupId)
         {
+            var allowedMimeTypes = new[] { "image/jpeg", "image/png" };
+
+            if (req.ImageFile != null && !allowedMimeTypes.Contains(req.ImageFile.ContentType))
+            {
+                return BadRequest("Invalid image file type. Only JPEG and PNG are allowed.");
+            }
+
             var result = await _deviceManager.AddDeviceAsync(req,groupId);
 
             return result == true ? Created() : Conflict();
