@@ -20,16 +20,18 @@ namespace SmartWeather.Controllers
         [HttpPost("add")]
         public async Task<IActionResult> AddGroup([FromForm]CreateDeviceReq req,int groupId)
         {
-            var allowedMimeTypes = new[] { "image/jpeg", "image/png" };
-
-            if (req.ImageFile != null && !allowedMimeTypes.Contains(req.ImageFile.ContentType))
-            {
-                return BadRequest("Invalid image file type. Only JPEG and PNG are allowed.");
-            }
-
             var result = await _deviceManager.AddDeviceAsync(req,groupId);
 
-            return result == true ? Created() : Conflict();
+            return result.Success == true ? Created() : Conflict(result.Message);
+        }
+
+        [Authorize(Policy = "Admin")]
+        [HttpPut("{deviceId}/update")]
+        public async Task<IActionResult> UpdateGroup([FromForm] CreateDeviceReq req,int deviceId, int groupId)
+        {        
+            var result = await _deviceManager.EditDeviceAsync(req, deviceId,groupId);
+
+            return result.Success == true ? Created() : Conflict(result.Message);
         }
     }
 }
