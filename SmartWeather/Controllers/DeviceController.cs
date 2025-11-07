@@ -29,9 +29,28 @@ namespace SmartWeather.Controllers
         [HttpPut("{deviceId}/update")]
         public async Task<IActionResult> UpdateGroup([FromForm] CreateDeviceReq req,int deviceId, int groupId)
         {        
-            var result = await _deviceManager.EditDeviceAsync(req, deviceId,groupId);
+            var result = await _deviceManager.EditDeviceAsync(req, deviceId);
 
             return result.Success == true ? Created() : Conflict(result.Message);
+        }
+
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("get-devices-in-group")]
+        public async Task<IActionResult> GetDevicesInGroup(int groupId)
+        {
+            var devices = await _deviceManager.GetDevicesAsync(groupId);
+            return Ok(devices);
+        }
+        [Authorize(Policy = "Admin")]
+        [HttpDelete("{deviceId}/delete")]
+        public async Task<IActionResult> DeleteDevice(int deviceId, int groupId)
+        {
+            var result = await _deviceManager.DeleteDeviceAsync(deviceId);
+            if (result == false)
+            {
+                return BadRequest();
+            }
+            return NoContent();
         }
     }
 }

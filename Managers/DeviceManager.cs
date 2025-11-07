@@ -10,18 +10,21 @@ namespace Managers
 {
     public class DeviceManager : IDeviceManager
     {
-        private readonly IGenericCrudRepository<Device> _deviceRepository;
+        private readonly IGenericCrudRepository<Device> _deviceGeneralRepository;
         private readonly IGenericCrudRepository<Group> _groupRepository;
+        private readonly IDeviceRepository _deviceRepository;
         private readonly IConfiguration _configuration;
 
         public DeviceManager(
-            IGenericCrudRepository<Device> deviceRepository,
+            IGenericCrudRepository<Device> deviceGeneralRepository,
             IGenericCrudRepository<Group> groupRepository,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IDeviceRepository deviceRepository)
         {
-            _deviceRepository = deviceRepository;
+            _deviceGeneralRepository = deviceGeneralRepository;
             _groupRepository = groupRepository;
             _configuration = configuration;
+            _deviceRepository = deviceRepository;
         }
 
         private bool CheckIfImage(IFormFile? file)
@@ -62,10 +65,49 @@ namespace Managers
             return Path.Combine(req.SerialNumber, fileName).Replace("\\", "/");
         }
 
-        public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId, int groupId)
+        public async Task<bool> DeleteDeviceAsync(int deviceId)
+        {
+            var device = await _deviceGeneralRepository.GetByIdAsync(deviceId);
+            if (device == null)
+                return false;
+            var rootPath = _configuration.GetSection("Images").GetValue<string>("StoragePath");
+            var deviceFolder = Path.Combine(rootPath, device.SerialNumber);
+            if (Directory.Exists(deviceFolder))
+            {
+                Directory.Delete(deviceFolder, true);
+            }
+            return await _deviceGeneralRepository.DeleteAsync(device);
+        }
+
+        public async Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId)
+        {
+            var devices = await _deviceRepository.GetDevicesInGroupAsync(groupId);
+
+            if(!devices.Any())
+                return Enumerable.Empty<DeviceResponse>();
+
+            var result = new List<DeviceResponse>();
+            //metrics later
+            foreach(var device in devices)
+            {
+                result.Add(new DeviceResponse()
+                {
+                    Id = device.Id,
+                    SerialNumber = device.SerialNumber,
+                    Location = device.Location,
+                    Image = device.Image,
+                    Status = device.Status.ToString(),
+                    LastMeasurement = device.LastMeasurement
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId)
         {
             var result = new ExecutionResult();
-            var device = await _deviceRepository.GetByIdAsync(deviceId);
+            var device = await _deviceGeneralRepository.GetByIdAsync(deviceId);
             if (device == null)
                 return result;
 
@@ -110,7 +152,7 @@ namespace Managers
             device.SerialNumber = newSerial;
             device.Location = req.Location;
 
-            var isSuccess = await _deviceRepository.UpdateAsync(device);
+            var isSuccess = await _deviceGeneralRepository.UpdateAsync(device);
             result.Success = isSuccess;
 
             return result;
@@ -138,7 +180,7 @@ namespace Managers
                 device.Image = await UploadImage(null, req);
             }
 
-            var isSuccess = await _deviceRepository.AddAsync(device);
+            var isSuccess = await _deviceGeneralRepository.AddAsync(device);
             result.Success = isSuccess;
             return result;
         }
