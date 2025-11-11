@@ -1,0 +1,13 @@
+﻿using Models.requests;
+using Models.responses;
+
+namespace Interfaces.Managers
+{
+    public interface IDeviceManager
+    {
+        Task<ExecutionResult> AddDeviceAsync(CreateDeviceReq req, int groupId);
+        Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId);
+        Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId);
+        Task<bool> DeleteDeviceAsync(int deviceId);
+    }    
+}
