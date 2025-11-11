@@ -32,5 +32,22 @@ namespace Repositories
                 return string.Empty;
             }
         }
+
+        public async Task<IEnumerable<(int Id, string Name)>> GetCurrentLoggedUserGroups(string userId)
+        {
+            try
+            {
+                var groups = await _context.GroupMemberships
+                    .Where(gm => gm.ApplicationUserId == userId)
+                    .Select(gm => new { gm.Group.Id, gm.Group.Name })
+                    .AsNoTracking().ToListAsync();
+
+                return groups.Select(g => (g.Id, g.Name));
+            }
+            catch
+            {
+                return Enumerable.Empty<(int Id, string Name)>();
+            }
+        }
     }
 }
