@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Models.SqlEntities;
 using System.Reflection.Emit;
 
@@ -29,6 +30,13 @@ namespace Repositories.SqlContext
                 .Property(g => g.Status)
                 .HasConversion<string>();
 
+            builder.Entity<SensorMetric>()
+                .Property(g => g.SensorType)
+                .HasConversion<string>();
+
+            builder.Entity<Alert>()
+                .Property(g => g.Condition)
+                .HasConversion<string>();
 
             builder.Entity<GroupMembership>()
                 .HasKey(x => new { x.GroupId, x.ApplicationUserId });
@@ -42,6 +50,10 @@ namespace Repositories.SqlContext
                 .HasOne(x => x.ApplicationUser)
                 .WithMany(x => x.GroupMemberships)
                 .HasForeignKey(x => x.ApplicationUserId);
+
+            builder.Entity<Device>()
+                .HasIndex(u => u.SerialNumber)
+                .IsUnique();
 
             builder.Entity<Device>()
                 .HasOne(x => x.Group)

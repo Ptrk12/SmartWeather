@@ -1,5 +1,6 @@
 ﻿using Interfaces.Managers;
 using Interfaces.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
@@ -30,14 +31,14 @@ namespace Managers
             };
             group.Memberships.Add(membership);
 
-            return await _groupRepository.AddGroupAsync(group);
+            return await _groupRepository.AddAsync(group);
         }
 
         public async Task<ExecutionResult> DeleteGroupAsync(int groupId)
         {
             var result = new ExecutionResult();
 
-            var group = await _groupRepository.GetGroupByIdAsync(groupId);
+            var group = await _groupRepository.GetByIdAsync(groupId,x=>x.Include(x=>x.Devices));
 
             if (group == null)
                 return result;
@@ -48,13 +49,13 @@ namespace Managers
                 return result;
             }
 
-            result.Success = await _groupRepository.DeleteGroupAsync(group);
+            result.Success = await _groupRepository.DeleteAsync(group);
             return result;
         }
 
         public async Task<GroupResponse?> GetGroupByIdAsync(int groupId)
         {
-            var group = await _groupRepository.GetGroupByIdAsync(groupId);
+            var group = await _groupRepository.GetByIdAsync(groupId);
 
             if (group == null)
                 return null;
@@ -71,13 +72,13 @@ namespace Managers
 
         public async Task<bool> UpdateGroupAsync(int groupId, CreateGroupReq req)
         {
-            var group = await _groupRepository.GetGroupByIdAsync(groupId);
+            var group = await _groupRepository.GetByIdAsync(groupId);
             if (group == null)
                 return false;
 
             group.Name = req.Name;
             group.Description = req.Description;
-            return await _groupRepository.UpdateGroupAsync(group);
+            return await _groupRepository.UpdateAsync(group);
         }
     }
 }

@@ -5,11 +5,11 @@ using Repositories.SqlContext;
 
 namespace Repositories
 {
-    public class GroupRepository : IGroupRepository
+    public class GroupRepository : GenericCrudRepository<Group>, IGroupRepository
     {
         private readonly SqlDbContext _context;
 
-        public GroupRepository(SqlDbContext context)
+        public GroupRepository(SqlDbContext context) : base(context)
         {
             _context = context;
         }
@@ -33,51 +33,20 @@ namespace Repositories
             }
         }
 
-        public async Task<bool> AddGroupAsync(Group req)
+        public async Task<IEnumerable<(int Id, string Name)>> GetCurrentLoggedUserGroups(string userId)
         {
             try
             {
-                _context.Groups.Add(req);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-        public async Task<bool> DeleteGroupAsync(Group group)
-        {
-            try
-            {      
-                _context.Groups.Remove(group);
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+                var groups = await _context.GroupMemberships
+                    .Where(gm => gm.ApplicationUserId == userId)
+                    .Select(gm => new { gm.Group.Id, gm.Group.Name })
+                    .AsNoTracking().ToListAsync();
 
-        public async Task<Group?> GetGroupByIdAsync(int groupId)
-        {
-            return await _context.Groups
-                .Include(g => g.Devices)
-                .FirstOrDefaultAsync(g => g.Id == groupId);
-        }
-
-        public async Task<bool> UpdateGroupAsync(Group group) 
-        {              
-            try
-            {
-                _context.Groups.Update(group);
-                await _context.SaveChangesAsync();
-                return true;
+                return groups.Select(g => (g.Id, g.Name));
             }
             catch
             {
-                return false;
+                return Enumerable.Empty<(int Id, string Name)>();
             }
         }
     }
