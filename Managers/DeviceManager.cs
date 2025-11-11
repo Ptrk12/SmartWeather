@@ -1,7 +1,9 @@
 ﻿using Interfaces.Managers;
 using Interfaces.Repositories;
+using Interfaces.Repositories.firebase;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Models.firebase;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
@@ -14,17 +16,20 @@ namespace Managers
         private readonly IGenericCrudRepository<Group> _groupRepository;
         private readonly IDeviceRepository _deviceRepository;
         private readonly IConfiguration _configuration;
+        private readonly IFirebaseRepository _firebaseRepository;
 
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
             IGenericCrudRepository<Group> groupRepository,
             IConfiguration configuration,
-            IDeviceRepository deviceRepository)
+            IDeviceRepository deviceRepository,
+            IFirebaseRepository firebaseRepository)
         {
             _deviceGeneralRepository = deviceGeneralRepository;
             _groupRepository = groupRepository;
             _configuration = configuration;
             _deviceRepository = deviceRepository;
+            _firebaseRepository = firebaseRepository;
         }
 
         private bool CheckIfImage(IFormFile? file)
@@ -183,6 +188,11 @@ namespace Managers
             var isSuccess = await _deviceGeneralRepository.AddAsync(device);
             result.Success = isSuccess;
             return result;
+        }
+
+        public async Task<FirebaseDeviceMeasurement?> GetDeviceMeasurementAsync(string deviceId)
+        {
+            var data = await _firebaseRepository.GetDeviceMeasurementAsync(deviceId);
         }
     }
 }
