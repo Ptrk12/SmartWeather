@@ -5,6 +5,6 @@ namespace Interfaces.Repositories.firebase
 {
     public interface IFirebaseRepository
     {
-        Task<ExecutionResult> GetDeviceMeasurementAsync(string deviceId);
+        Task<IEnumerable<FirebaseDeviceMeasurement>> GetDeviceMeasurementAsync(string deviceSerialNumber);
     }
 }
