@@ -1,4 +1,5 @@
-﻿using Models.requests;
+﻿using Models.firebase;
+using Models.requests;
 using Models.responses;
 
 namespace Interfaces.Managers
@@ -9,5 +10,6 @@ namespace Interfaces.Managers
         Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId);
         Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId);
         Task<bool> DeleteDeviceAsync(int deviceId);
+        Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType);
     }    
 }

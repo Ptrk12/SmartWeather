@@ -1,10 +1,13 @@
 ﻿using Interfaces.Managers;
 using Interfaces.Repositories;
+using Interfaces.Repositories.firebase;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Models.firebase;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
+using System;
 
 namespace Managers
 {
@@ -14,17 +17,20 @@ namespace Managers
         private readonly IGenericCrudRepository<Group> _groupRepository;
         private readonly IDeviceRepository _deviceRepository;
         private readonly IConfiguration _configuration;
+        private readonly IFirebaseRepository _firebaseRepository;
 
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
             IGenericCrudRepository<Group> groupRepository,
             IConfiguration configuration,
-            IDeviceRepository deviceRepository)
+            IDeviceRepository deviceRepository,
+            IFirebaseRepository firebaseRepository)
         {
             _deviceGeneralRepository = deviceGeneralRepository;
             _groupRepository = groupRepository;
             _configuration = configuration;
             _deviceRepository = deviceRepository;
+            _firebaseRepository = firebaseRepository;
         }
 
         private bool CheckIfImage(IFormFile? file)
@@ -83,12 +89,12 @@ namespace Managers
         {
             var devices = await _deviceRepository.GetDevicesInGroupAsync(groupId);
 
-            if(!devices.Any())
+            if (!devices.Any())
                 return Enumerable.Empty<DeviceResponse>();
 
             var result = new List<DeviceResponse>();
             //metrics later
-            foreach(var device in devices)
+            foreach (var device in devices)
             {
                 result.Add(new DeviceResponse()
                 {
@@ -124,7 +130,7 @@ namespace Managers
                 if (Directory.Exists(oldFolder))
                 {
                     if (Directory.Exists(newFolder))
-                        Directory.Delete(newFolder, true); 
+                        Directory.Delete(newFolder, true);
 
                     Directory.Move(oldFolder, newFolder);
                     if (!string.IsNullOrEmpty(device.Image))
@@ -182,6 +188,35 @@ namespace Managers
 
             var isSuccess = await _deviceGeneralRepository.AddAsync(device);
             result.Success = isSuccess;
+            return result;
+        }
+
+        public async Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType)
+        {
+            var devicecSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
+
+            var result = new MeasurementResponse()
+            {
+                Parameter = parameterType,
+            };
+
+            if (string.IsNullOrEmpty(devicecSerialNumber))
+                return result;
+
+            var deviceMeasurements = await _firebaseRepository.GetDeviceMeasurementAsync(devicecSerialNumber);
+
+            foreach (var measurement in deviceMeasurements)
+            {
+                var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
+
+                if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), out var parsedValue))
+                {
+                    result.Measurements[DateTimeOffset.FromUnixTimeSeconds(measurement.Timestamp)] = parsedValue;
+                }
+            }
+            result.Measurements = result.Measurements
+                                        .OrderByDescending(kv => kv.Key)
+                                        .ToDictionary(kv => kv.Key, kv => kv.Value);
             return result;
         }
     }

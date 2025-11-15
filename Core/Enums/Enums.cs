@@ -26,4 +26,13 @@ namespace Core.Enums
         GreaterThan,
         LessThan
     }
+    public enum ParameterTypes
+    {
+        Temperature,
+        Humidity,
+        Pressure,
+        PM1,
+        PM2_5,
+        PM10
+    }
 }

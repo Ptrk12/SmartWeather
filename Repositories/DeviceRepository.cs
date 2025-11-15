@@ -27,5 +27,17 @@ namespace Repositories
                 return Enumerable.Empty<Device>();
             }
         }
+        public async Task<string?> GetDeviceSerialNumberAsync(int deviceId)
+        {
+            try
+            {
+                var device = await _context.Devices.FirstOrDefaultAsync(d => d.Id == deviceId);
+                return device?.SerialNumber;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

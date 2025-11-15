@@ -1,5 +1,8 @@
+using Google.Apis.Auth.OAuth2;
+using Google.Cloud.Firestore;
 using Interfaces.Managers;
 using Interfaces.Repositories;
+using Interfaces.Repositories.firebase;
 using Managers;
 using Managers.auth;
 using Managers.validation;
@@ -7,12 +10,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories;
+using Repositories.firebase;
 using Repositories.SqlContext;
 using Serilog;
 using SmartWeather.Extensions;
 using SmartWeather.filters;
 using SmartWeather.Filters;
 using SmartWeather.middlewares;
+using System.Text;
+using System.Text.Json;
 
 namespace SmartWeather
 {
@@ -69,6 +75,29 @@ namespace SmartWeather
                     options.UseSqlServer(builder.Configuration.GetConnectionString("Sql"))
                            .AddInterceptors(loggingInterceptor);
                 });
+
+                builder.Services.AddSingleton(sp =>
+                {
+                    var firebaseConfigSection = builder.Configuration.GetSection("Firebase");
+                    var credsDict = firebaseConfigSection.Get<Dictionary<string, string>>();
+                    string credentialsJson = JsonSerializer.Serialize(credsDict);
+                    using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentialsJson));
+
+                    ServiceAccountCredential serviceAccountCredential = ServiceAccountCredential.FromServiceAccountData(stream);
+
+                    var credential = GoogleCredential.FromServiceAccountCredential(serviceAccountCredential);
+                    string projectId = credsDict["project_id"];
+
+                    var dbBuilder = new FirestoreDbBuilder
+                    {
+                        ProjectId = projectId,
+                        Credential = credential
+                    };
+
+                    return dbBuilder.Build();
+                });
+                builder.Services.AddScoped<IFirebaseRepository,FirebaseRepository>();
+
                 builder.Services.AddIdentityAndAuthentication(builder.Configuration);
                 builder.Services.AddSwaggerServices();
 
