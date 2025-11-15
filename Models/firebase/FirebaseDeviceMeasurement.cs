@@ -2,8 +2,13 @@
 
 namespace Models.firebase
 {
+    [FirestoreData]
     public class FirebaseDeviceMeasurement
     {
+        public FirebaseDeviceMeasurement()
+        {
+            
+        }
         [FirestoreDocumentId]
         public string Id { get; set; }
         [FirestoreProperty("serialNumber")]
@@ -11,6 +16,6 @@ namespace Models.firebase
         [FirestoreProperty("timestamp")]
         public long Timestamp { get; set; }
         [FirestoreProperty("parameters")]
-        public Dictionary<string, string> Parameters { get; set; }
+        public List<Dictionary<string, object>> Parameters { get; set; } = new();
     }
 }

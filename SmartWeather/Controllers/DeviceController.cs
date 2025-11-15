@@ -52,5 +52,13 @@ namespace SmartWeather.Controllers
             }
             return NoContent();
         }
+
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("{deviceId}/measurements")]
+        public async Task<IActionResult> GetDeviceMeasurement(int groupId, int deviceId, string parameterType)
+        {
+            var devices = await _deviceManager.GetDeviceMeasurementAsync(deviceId, parameterType);
+            return Ok(devices);
+        }
     }
 }

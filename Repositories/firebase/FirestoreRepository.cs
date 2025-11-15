@@ -13,25 +13,31 @@ namespace Repositories.firebase
         {
             _db = db;   
         }
-        public async Task<ExecutionResult> GetDeviceMeasurementAsync(string deviceId)
+        public async Task<IEnumerable<FirebaseDeviceMeasurement>> GetDeviceMeasurementAsync(string deviceId)
         {
-            var result = new ExecutionResult();
+            var result = new List<FirebaseDeviceMeasurement>();
 
             if (string.IsNullOrEmpty(deviceId))
                 return result;
 
             var collection = _db.Collection($"{DevicesCollection}/{deviceId}/measurements");
 
-            var snapshot = await collection.GetSnapshotAsync();
-            result.Success = true;
+            var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            var thirtyDaysAgo = now - (30 * 24 * 60 * 60);
+
+            var query = collection
+                        .WhereGreaterThanOrEqualTo("timestamp", thirtyDaysAgo);
+
+            var snapshot = await query.GetSnapshotAsync();
 
             if (snapshot.Count == 0)
                 return result;
 
-            result.Data = snapshot.Documents
-                           .Where(d => d.Exists)
-                           .Select(d => d.ConvertTo<FirebaseDeviceMeasurement>())
-                           .ToList();
+            result = snapshot.Documents
+                   .Where(d => d.Exists)
+                   .Select(d => d.ConvertTo<FirebaseDeviceMeasurement>())
+                   .ToList();
+
             return result;
         }
 
