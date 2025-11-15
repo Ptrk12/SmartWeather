@@ -14,7 +14,7 @@ namespace Core.Enums
         Temperature,
         Humidity,
         Pressure,
-        PM
+        Dust
     }
     public enum GroupRole
     {
