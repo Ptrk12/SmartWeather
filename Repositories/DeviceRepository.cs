@@ -39,5 +39,46 @@ namespace Repositories
                 return null;
             }
         }
+
+        public async Task<Device?> GetLatestHistoricalRecord(string serialNumber)
+        {
+            try
+            {
+                var latestHistoryRecord = await _context.Devices
+                    .TemporalAll()
+                    .Where(d => d.SerialNumber == serialNumber)
+                    .Where(d => EF.Property<DateTime>(d, "ValidTo") < DateTime.UtcNow)
+                    .OrderByDescending(d => EF.Property<DateTime>(d, "ValidTo"))      
+                    .FirstOrDefaultAsync(); 
+
+                return latestHistoryRecord;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> IsDeviceAllowedForUser(string userId, int groupId, int deviceId)
+        {
+            try
+            {
+                var device = await _context.Devices.AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.Id == deviceId && d.GroupId == groupId);
+
+                if (device == null)
+                    return false;
+
+                var membership = await _context.GroupMemberships.AsNoTracking()
+                    .FirstOrDefaultAsync(gm => gm.ApplicationUserId == userId && gm.GroupId == groupId);
+
+                return membership != null;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
     }
 }

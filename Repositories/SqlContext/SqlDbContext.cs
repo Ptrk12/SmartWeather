@@ -78,6 +78,18 @@ namespace Repositories.SqlContext
                 .WithMany(a => a.AlertLogs) 
                 .HasForeignKey(al => al.AlertId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+
+            builder.Entity<Device>().ToTable("Devices", options =>
+            {
+                options.IsTemporal(
+                    builder =>
+                    {
+                        builder.HasPeriodStart("ValidFrom").HasColumnName("ValidFrom");
+                        builder.HasPeriodEnd("ValidTo").HasColumnName("ValidTo");
+                        builder.UseHistoryTable("DeviceHistory");
+                    });
+            });
         }
     }
 }
