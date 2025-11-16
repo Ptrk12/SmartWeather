@@ -24,7 +24,7 @@ namespace SmartWeather.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpPut("/{sensorMetricId}/update")]
+        [HttpPut("{sensorMetricId}/update")]
         public async Task<IActionResult> UpdateSensorMetric(CreateSensorMetric req, int deviceId, int sensorMetricId, int groupId)
         {
             var result = await _sensorMetricManager.UpdateSensorMetricAsync(deviceId,sensorMetricId,req);
@@ -32,7 +32,7 @@ namespace SmartWeather.Controllers
         }
 
         [Authorize(Policy = "Admin")]
-        [HttpDelete("/{sensorMetricId}/delete")]
+        [HttpDelete("{sensorMetricId}/delete")]
         public async Task<IActionResult> DeleteSenroMetric(int deviceId, int sensorMetricId, int groupId)
         {
             var result = await _sensorMetricManager.DeleteSensorMetricAsync(deviceId,sensorMetricId);
