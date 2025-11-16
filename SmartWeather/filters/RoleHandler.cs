@@ -9,14 +9,16 @@ namespace SmartWeather.filters
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IGroupRepository _groupRepository;
         private readonly IDeviceRepository _deviceRepository;
+        private readonly ISensorMetricRepository _sensorMetricRepository;
         private readonly IUserManager _userManager;
 
-        public RoleHandler(IHttpContextAccessor httpContextAccessor, IGroupRepository groupRepository,IUserManager userManager, IDeviceRepository deviceRepository)
+        public RoleHandler(IHttpContextAccessor httpContextAccessor, IGroupRepository groupRepository,IUserManager userManager, IDeviceRepository deviceRepository, ISensorMetricRepository sensorMetricRepository)
         {
             _httpContextAccessor = httpContextAccessor;
             _groupRepository = groupRepository;
             _userManager = userManager;
             _deviceRepository = deviceRepository;
+            _sensorMetricRepository = sensorMetricRepository;
         }
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
@@ -42,6 +44,20 @@ namespace SmartWeather.filters
                 var deviceOk = await _deviceRepository.IsDeviceAllowedForUser(userId, groupId, deviceId);
                 if (!deviceOk)
                     return;
+
+                var sensorMetricStr = httpContext.Request.RouteValues["sensorMetricId"]?.ToString()
+                  ?? httpContext.Request.Query["sensorMetricId"].ToString();
+
+                if (!string.IsNullOrWhiteSpace(sensorMetricStr))
+                {
+                    if (!int.TryParse(sensorMetricStr, out var sensorMetricId))
+                        return;
+
+                    var sensorMetricOk = await _sensorMetricRepository.IsSensorMetricAllowedForUser(deviceId, sensorMetricId);
+
+                    if (!sensorMetricOk)
+                        return;
+                }
             }
 
             var role = await _groupRepository.GetUserRoleInGroup(userId,groupId);
