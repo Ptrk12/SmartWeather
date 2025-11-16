@@ -7,5 +7,7 @@ namespace Interfaces.Repositories
     {
         Task<IEnumerable<Device>> GetDevicesInGroupAsync(int groupId);
         Task<string?> GetDeviceSerialNumberAsync(int deviceId);
+        Task<Device?> GetLatestHistoricalRecord(string serialNumber);
+        Task<bool> IsDeviceAllowedForUser(string userId, int groupId, int deviceId);
     }
 }

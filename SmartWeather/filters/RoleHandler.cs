@@ -8,13 +8,15 @@ namespace SmartWeather.filters
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IGroupRepository _groupRepository;
+        private readonly IDeviceRepository _deviceRepository;
         private readonly IUserManager _userManager;
 
-        public RoleHandler(IHttpContextAccessor httpContextAccessor, IGroupRepository groupRepository,IUserManager userManager)
+        public RoleHandler(IHttpContextAccessor httpContextAccessor, IGroupRepository groupRepository,IUserManager userManager, IDeviceRepository deviceRepository)
         {
             _httpContextAccessor = httpContextAccessor;
             _groupRepository = groupRepository;
             _userManager = userManager;
+            _deviceRepository = deviceRepository;
         }
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, RoleRequirement requirement)
         {
@@ -28,6 +30,19 @@ namespace SmartWeather.filters
 
             if (!int.TryParse(groupIdStr, out var groupId))
                 return;
+
+            var deviceIdStr = httpContext.Request.RouteValues["deviceId"]?.ToString()
+                  ?? httpContext.Request.Query["deviceId"].ToString();
+
+            if (!string.IsNullOrWhiteSpace(deviceIdStr))
+            {
+                if (!int.TryParse(deviceIdStr, out var deviceId))
+                    return;
+
+                var deviceOk = await _deviceRepository.IsDeviceAllowedForUser(userId, groupId, deviceId);
+                if (!deviceOk)
+                    return;
+            }
 
             var role = await _groupRepository.GetUserRoleInGroup(userId,groupId);
             if (!string.IsNullOrEmpty(role) && requirement.RequirementRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
