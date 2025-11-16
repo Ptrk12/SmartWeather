@@ -22,5 +22,21 @@ namespace SmartWeather.Controllers
             var result = await _sensorMetricManager.AddSensorMetricAsync(req, deviceId);
             return result.Success == true ? Created() : Conflict(result.Message);
         }
+
+        [Authorize(Policy = "Admin")]
+        [HttpPut("/{sensorMetricId}/update")]
+        public async Task<IActionResult> UpdateSensorMetric(CreateSensorMetric req, int deviceId, int sensorMetricId, int groupId)
+        {
+            var result = await _sensorMetricManager.UpdateSensorMetricAsync(deviceId,sensorMetricId,req);
+            return result.Success == true ? NoContent() : Conflict(result.Message);
+        }
+
+        [Authorize(Policy = "Admin")]
+        [HttpDelete("/{sensorMetricId}/delete")]
+        public async Task<IActionResult> DeleteSenroMetric(int deviceId, int sensorMetricId, int groupId)
+        {
+            var result = await _sensorMetricManager.DeleteSensorMetricAsync(deviceId,sensorMetricId);
+            return result.Success == true ? NoContent() : Conflict(result.Message);
+        }
     }
 }
