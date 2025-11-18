@@ -1,5 +1,6 @@
 ﻿using Interfaces.Repositories;
 using Microsoft.EntityFrameworkCore;
+using Models.responses;
 using Models.SqlEntities;
 using Repositories.SqlContext;
 
@@ -25,6 +26,18 @@ namespace Repositories
             catch
             {
                 return false;
+            }
+        }
+        public async Task<IEnumerable<SensorMetric>> GetAllSensorMetricAsync(int deviceId)
+        {
+            try
+            {
+                var result = await _context.SensorMetrics.AsNoTracking().Where(x => x.DeviceId == deviceId).ToListAsync();
+                return result;
+            }
+            catch
+            {
+                return Enumerable.Empty<SensorMetric>();
             }
         }
     }

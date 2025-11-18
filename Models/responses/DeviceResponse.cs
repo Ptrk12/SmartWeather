@@ -9,6 +9,5 @@
         public string Status { get; set; }
         public DateTimeOffset? LastMeasurement { get; set; }
 
-        //later add sensorMetrics
-        }
+    }
 }
