@@ -8,6 +8,6 @@ namespace Models.responses
         public string Name { get; set; }
         public string Unit { get; set; }
         public string SensorType { get; set; }
-        public double LatestMeasurement { get; set; }   
+        public double? LatestMeasurement { get; set; }   
     }
 }

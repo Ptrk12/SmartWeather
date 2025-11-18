@@ -55,6 +55,17 @@ namespace SmartWeather.Controllers
             return Ok(group);
         }
 
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet]
+        [Route("get-all")]
+        public async Task<IActionResult> GetAllUserGroups()
+        {
+            var userId = _userManager.GetUserId(User);
+            var group = await _groupManager.GetAllGroupsAsync(userId);
+           
+            return Ok(group);
+        }
+
         [Authorize(Policy = "Admin")]
         [HttpPut("{groupId}")]
         public async Task<IActionResult> UpdateGroup(int groupId, CreateGroupReq req)

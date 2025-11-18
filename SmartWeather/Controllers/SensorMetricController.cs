@@ -46,5 +46,13 @@ namespace SmartWeather.Controllers
             var sensorMetrics = await _sensorMetricManager.GetSensorMetricsAsync(deviceId);
             return Ok(sensorMetrics);
         }
+
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("{sensorMetricId}")]
+        public async Task<IActionResult> GetSensorMetricById(int deviceId, int groupId, int sensorMetricId)
+        {
+            var sensorMetric = await _sensorMetricManager.GetSensorMetricByIdAsync(sensorMetricId);
+            return Ok(sensorMetric);
+        }
     }
 }
