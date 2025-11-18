@@ -34,6 +34,18 @@ namespace Managers
             return await _groupRepository.AddAsync(group);
         }
 
+        public async Task<IEnumerable<GroupResponse>> GetAllGroupsAsync(string userId)
+        {
+            var groups = await _groupRepository.GetCurrentLoggedUserGroups(userId);
+            return groups.Select(group => new GroupResponse
+            {
+                Id = group.Id,
+                Name = group.Name,
+                Description = group.Description,
+                CreatedAt = group.CreatedAt,
+                NumberOfDevices = group.Devices.Count
+            });
+        }
         public async Task<ExecutionResult> DeleteGroupAsync(int groupId)
         {
             var result = new ExecutionResult();
