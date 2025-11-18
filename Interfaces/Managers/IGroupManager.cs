@@ -9,5 +9,6 @@ namespace Interfaces.Managers
         Task<ExecutionResult> DeleteGroupAsync(int groupId);
         Task<GroupResponse?> GetGroupByIdAsync(int groupId);
         Task<bool> UpdateGroupAsync(int groupId, CreateGroupReq req);
+        Task<IEnumerable<GroupResponse>> GetAllGroupsAsync(string userId);
     }
 }
