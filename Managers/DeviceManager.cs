@@ -75,7 +75,8 @@ namespace Managers
         {
             var device = await _deviceGeneralRepository.GetByIdAsync(deviceId);
             if (device == null)
-                return false;
+                return false; 
+
             var rootPath = _configuration.GetSection("Images").GetValue<string>("StoragePath");
             var deviceFolder = Path.Combine(rootPath, device.SerialNumber);
             if (Directory.Exists(deviceFolder))
@@ -184,6 +185,14 @@ namespace Managers
                     return result;
                 }
                 device.Image = await UploadImage(null, req);
+            }
+
+            var historicalDevice = await _deviceRepository.GetLatestHistoricalRecord(req.SerialNumber);
+
+            if (historicalDevice != null)
+            {
+                device.Status = historicalDevice.Status;
+                device.LastMeasurement = historicalDevice.LastMeasurement;
             }
 
             var isSuccess = await _deviceGeneralRepository.AddAsync(device);

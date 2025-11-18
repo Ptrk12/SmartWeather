@@ -33,20 +33,20 @@ namespace Repositories
             }
         }
 
-        public async Task<IEnumerable<(int Id, string Name)>> GetCurrentLoggedUserGroups(string userId)
+        public async Task<IEnumerable<Group>> GetCurrentLoggedUserGroups(string userId)
         {
             try
             {
-                var groups = await _context.GroupMemberships
-                    .Where(gm => gm.ApplicationUserId == userId)
-                    .Select(gm => new { gm.Group.Id, gm.Group.Name })
-                    .AsNoTracking().ToListAsync();
+                var groups = await _context.Groups
+                    .Where(g => g.Memberships.Any(m => m.ApplicationUserId == userId))
+                    .Include(g => g.Devices)
+                    .ToListAsync();
 
-                return groups.Select(g => (g.Id, g.Name));
+                return groups;
             }
             catch
             {
-                return Enumerable.Empty<(int Id, string Name)>();
+                return Enumerable.Empty<Group>();
             }
         }
     }

@@ -63,7 +63,7 @@ namespace Repositories
             if (includeFunc != null)
                 query = includeFunc(query);
 
-            return await query.FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
+            return await query.AsNoTracking().FirstOrDefaultAsync(e => EF.Property<int>(e, "Id") == id);
         }
 
     }
