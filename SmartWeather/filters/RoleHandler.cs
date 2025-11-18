@@ -28,13 +28,25 @@ namespace SmartWeather.filters
             if (string.IsNullOrEmpty(userId))
                 return;
 
-            var groupIdStr = httpContext.Request.RouteValues["groupId"]?.ToString() ?? httpContext.Request.Query["groupId"].ToString();
+            var groupIdStr = httpContext.Request.RouteValues["groupId"]?.ToString()
+                ?? httpContext.Request.Query["groupId"].ToString();
+
+            var deviceIdStr = httpContext.Request.RouteValues["deviceId"]?.ToString()
+                ?? httpContext.Request.Query["deviceId"].ToString();
+
+            var sensorMetricStr = httpContext.Request.RouteValues["sensorMetricId"]?.ToString()
+                ?? httpContext.Request.Query["sensorMetricId"].ToString();
+
+            if (string.IsNullOrEmpty(groupIdStr) &&
+                string.IsNullOrEmpty(deviceIdStr) &&
+                string.IsNullOrEmpty(sensorMetricStr))
+            {
+                context.Succeed(requirement);
+                return;
+            }
 
             if (!int.TryParse(groupIdStr, out var groupId))
                 return;
-
-            var deviceIdStr = httpContext.Request.RouteValues["deviceId"]?.ToString()
-                  ?? httpContext.Request.Query["deviceId"].ToString();
 
             if (!string.IsNullOrWhiteSpace(deviceIdStr))
             {
@@ -45,26 +57,23 @@ namespace SmartWeather.filters
                 if (!deviceOk)
                     return;
 
-                var sensorMetricStr = httpContext.Request.RouteValues["sensorMetricId"]?.ToString()
-                  ?? httpContext.Request.Query["sensorMetricId"].ToString();
-
                 if (!string.IsNullOrWhiteSpace(sensorMetricStr))
                 {
                     if (!int.TryParse(sensorMetricStr, out var sensorMetricId))
                         return;
 
                     var sensorMetricOk = await _sensorMetricRepository.IsSensorMetricAllowedForUser(deviceId, sensorMetricId);
-
                     if (!sensorMetricOk)
                         return;
                 }
             }
 
-            var role = await _groupRepository.GetUserRoleInGroup(userId,groupId);
+            var role = await _groupRepository.GetUserRoleInGroup(userId, groupId);
             if (!string.IsNullOrEmpty(role) && requirement.RequirementRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
             {
                 context.Succeed(requirement);
             }
         }
+
     }
 }
