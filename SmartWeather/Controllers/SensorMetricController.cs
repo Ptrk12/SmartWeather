@@ -38,5 +38,13 @@ namespace SmartWeather.Controllers
             var result = await _sensorMetricManager.DeleteSensorMetricAsync(deviceId,sensorMetricId);
             return result.Success == true ? NoContent() : Conflict(result.Message);
         }
+
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("get-all")]
+        public async Task<IActionResult > GetAllSensorMetrics(int deviceId, int groupId)
+        {
+            var sensorMetrics = await _sensorMetricManager.GetSensorMetricsAsync(deviceId);
+            return Ok(sensorMetrics);
+        }
     }
 }
