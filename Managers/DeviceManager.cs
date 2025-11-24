@@ -3,31 +3,26 @@ using Interfaces.Repositories;
 using Interfaces.Repositories.firebase;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
-using Models.firebase;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
-using System;
 
 namespace Managers
 {
     public class DeviceManager : IDeviceManager
     {
         private readonly IGenericCrudRepository<Device> _deviceGeneralRepository;
-        private readonly IGenericCrudRepository<Group> _groupRepository;
         private readonly IDeviceRepository _deviceRepository;
         private readonly IConfiguration _configuration;
         private readonly IFirebaseRepository _firebaseRepository;
 
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
-            IGenericCrudRepository<Group> groupRepository,
             IConfiguration configuration,
             IDeviceRepository deviceRepository,
             IFirebaseRepository firebaseRepository)
         {
             _deviceGeneralRepository = deviceGeneralRepository;
-            _groupRepository = groupRepository;
             _configuration = configuration;
             _deviceRepository = deviceRepository;
             _firebaseRepository = firebaseRepository;

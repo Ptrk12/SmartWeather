@@ -67,10 +67,10 @@ namespace Repositories.SqlContext
                 .HasForeignKey(x=>x.DeviceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<Alert>()
-                .HasOne(x=>x.SensorMetric)
-                .WithMany(x=>x.Alerts)
-                .HasForeignKey(x=>x.SensorMetricId)
+            builder.Entity<SensorMetric>()
+                .HasOne(sm => sm.Alert)
+                .WithOne(a => a.SensorMetric)
+                .HasForeignKey<Alert>(a => a.SensorMetricId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<AlertLog>()
