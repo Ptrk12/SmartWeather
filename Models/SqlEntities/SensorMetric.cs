@@ -18,6 +18,6 @@ namespace Models.SqlEntities
         [Required]
         public int DeviceId { get; set; }
         public virtual Device Device { get; set; }
-        public virtual ICollection<Alert> Alerts { get; set; } = new List<Alert>();
+        public virtual Alert Alert { get; set; }
     }
 }
