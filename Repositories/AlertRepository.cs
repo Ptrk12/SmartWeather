@@ -18,7 +18,7 @@ namespace Repositories
         {
             try
             {
-                return await _db.Alerts.Where(a => a.SensorMetric.DeviceId == deviceId).ToListAsync();
+                return await _db.Alerts.Include(x=>x.SensorMetric).Where(a => a.SensorMetric.DeviceId == deviceId).ToListAsync();
             }
             catch
             {
