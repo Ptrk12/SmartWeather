@@ -15,17 +15,20 @@ namespace Managers
         private readonly IDeviceRepository _deviceRepository;
         private readonly IConfiguration _configuration;
         private readonly IFirebaseRepository _firebaseRepository;
-
+        private readonly IAlertRepository _alertRepository;
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
             IConfiguration configuration,
             IDeviceRepository deviceRepository,
-            IFirebaseRepository firebaseRepository)
+            IFirebaseRepository firebaseRepository,
+            IAlertRepository alertRepository
+            )
         {
             _deviceGeneralRepository = deviceGeneralRepository;
             _configuration = configuration;
             _deviceRepository = deviceRepository;
             _firebaseRepository = firebaseRepository;
+            _alertRepository = alertRepository;
         }
 
         private bool CheckIfImage(IFormFile? file)
@@ -70,7 +73,7 @@ namespace Managers
         {
             var device = await _deviceGeneralRepository.GetByIdAsync(deviceId);
             if (device == null)
-                return false; 
+                return false;
 
             var rootPath = _configuration.GetSection("Images").GetValue<string>("StoragePath");
             var deviceFolder = Path.Combine(rootPath, device.SerialNumber);
@@ -81,6 +84,66 @@ namespace Managers
             return await _deviceGeneralRepository.DeleteAsync(device);
         }
 
+        private async Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId)
+        {
+            var result = new List<AlertStatusResponse>();
+            var latestMeasurement = await _firebaseRepository.GetLatestDeviceMeasurementAsync(deviceSerialNumber);
+
+            if (latestMeasurement == null)
+            {
+                return result;
+            }
+
+            var deviceAlertRules = await _alertRepository.GetDeviceAlertRules(deviceId);
+
+            if (deviceAlertRules.Any())
+            {
+                foreach (var alertRule in deviceAlertRules)
+                {
+                    if (!alertRule.IsEnabled)
+                        continue;
+
+                    var parameterValue = latestMeasurement.Parameters.FirstOrDefault(p => p.ContainsKey(alertRule.SensorMetric.SensorType.ToString().ToLower()));
+
+                    if (parameterValue != null && parameterValue.TryGetValue(alertRule.SensorMetric.SensorType.ToString().ToLower(), out var valueObj) && double.TryParse(valueObj.ToString(), out var value))
+                    {
+                        string message = string.Empty;
+                        string sensorTypeAlert = alertRule.SensorMetric.SensorType.ToString();
+
+                        switch (alertRule.Condition)
+                        {
+                            case Core.Enums.AlertCondition.GreaterThan:
+                                if (value > alertRule.ThresholdValue)
+                                {
+                                    message = $"{value} exceeds threshold of {alertRule.ThresholdValue}.";
+                                    result.Add(new AlertStatusResponse()
+                                    {
+                                        AlertMessage = message,
+                                        IsAlert = true,
+                                        SensorType = sensorTypeAlert
+                                    });
+                                }
+                                break;
+
+                            case Core.Enums.AlertCondition.LessThan:
+                                if (value < alertRule.ThresholdValue)
+                                {
+                                    message = $"{value} is below threshold of {alertRule.ThresholdValue}.";
+                                    result.Add(new AlertStatusResponse()
+                                    {
+                                        AlertMessage = message,
+                                        IsAlert = true,
+                                        SensorType = sensorTypeAlert
+                                    });
+                                }
+                                break;
+                        }
+                    }
+                }
+            }
+            return result;
+        }
+
         public async Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId)
         {
             var devices = await _deviceRepository.GetDevicesInGroupAsync(groupId);
@@ -88,23 +151,25 @@ namespace Managers
             if (!devices.Any())
                 return Enumerable.Empty<DeviceResponse>();
 
-            var result = new List<DeviceResponse>();
-            //metrics later
-            foreach (var device in devices)
+            var tasks = devices.Select(async device =>
             {
-                result.Add(new DeviceResponse()
+                var status = await GetDeviceAlerts(device.SerialNumber, device.Id);
+
+                return new DeviceResponse
                 {
                     Id = device.Id,
                     SerialNumber = device.SerialNumber,
                     Location = device.Location,
                     Image = device.Image,
                     Status = device.Status.ToString(),
-                    LastMeasurement = device.LastMeasurement
-                });
-            }
+                    LastMeasurement = device.LastMeasurement,
+                    AlertStatuses = status
+                };
+            });
 
-            return result;
+            return await Task.WhenAll(tasks);
         }
+
 
         public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId)
         {
