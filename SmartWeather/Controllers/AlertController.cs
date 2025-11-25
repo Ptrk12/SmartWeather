@@ -1,5 +1,4 @@
 ﻿using Interfaces.Managers;
-using Managers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.requests;
