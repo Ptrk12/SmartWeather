@@ -71,6 +71,8 @@ namespace SmartWeather
                 builder.Services.AddScoped<ISensorMetricManager, SensorMetricManager>();
                 builder.Services.AddScoped<IAlertRepository, AlertRepository>();
                 builder.Services.AddScoped<IAlertManager, AlertManager>();
+                builder.Services.AddScoped<IAlertLogsRepository, AlertLogsRepository>();
+                builder.Services.AddScoped<IAlertLogsManager, AlertLogsManager>();
 
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {
