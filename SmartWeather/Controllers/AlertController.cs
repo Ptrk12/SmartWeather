@@ -38,7 +38,7 @@ namespace SmartWeather.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddAlertRule(CreateAlertReq req, int groupId, int deviceId, int sensorMetricId)
         {
-            var result = await _alertManager.CreateAlertRule(req, sensorMetricId);
+            var result = await _alertManager.CreateAlertRule(req, sensorMetricId,groupId);
 
             return result.Success == true ? Created() : Conflict(result.Message);
         }
@@ -63,7 +63,7 @@ namespace SmartWeather.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateAlertRule(CreateAlertReq req, int groupId, int deviceId, int sensorMetricId, int alertId)
         {
-            var result = await _alertManager.EditAlertRule(req,sensorMetricId,alertId);
+            var result = await _alertManager.EditAlertRule(req,sensorMetricId,alertId,groupId);
 
             return result.Success == true ? Created() : Conflict(result.Message);
         }
@@ -87,7 +87,7 @@ namespace SmartWeather.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> DeleteAlertRule(int groupId, int deviceId, int sensorMetricId, int alertId)
         {
-            var result = await _alertManager.DeleteAlertRule(alertId,sensorMetricId);
+            var result = await _alertManager.DeleteAlertRule(alertId,sensorMetricId, groupId);
 
             return result.Success == true ? NoContent() : Conflict(result.Message);
         }
