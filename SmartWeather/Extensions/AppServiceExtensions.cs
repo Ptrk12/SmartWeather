@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Models.SqlEntities;
 using Repositories.SqlContext;
+using System.Reflection;
 using System.Text;
 
 namespace SmartWeather.Extensions
@@ -46,6 +47,9 @@ namespace SmartWeather.Extensions
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(options =>
             {
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
