@@ -1,9 +1,11 @@
 ﻿using Core.Enums;
 using Interfaces.Managers;
 using Interfaces.Repositories;
+using Microsoft.Extensions.Caching.Distributed;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
+using System.Text.RegularExpressions;
 
 namespace Managers
 {
@@ -12,15 +14,17 @@ namespace Managers
         private readonly IAlertRepository _alertRepository;
         private readonly IGenericCrudRepository<Alert> _crudAlertRepository;
         private readonly IGenericCrudRepository<SensorMetric> _crudSensorMetricRepository;
+        private readonly IDistributedCache _cache;
 
-        public AlertManager(IAlertRepository alertRepository, IGenericCrudRepository<Alert> crudAlertRepository, IGenericCrudRepository<SensorMetric> crudSensorMetricRepository)
+        public AlertManager(IAlertRepository alertRepository, IGenericCrudRepository<Alert> crudAlertRepository, IGenericCrudRepository<SensorMetric> crudSensorMetricRepository, IDistributedCache cache)
         {
             _alertRepository = alertRepository;
             _crudAlertRepository = crudAlertRepository;
             _crudSensorMetricRepository = crudSensorMetricRepository;
+            _cache = cache;
         }
 
-        public async Task<ExecutionResult> DeleteAlertRule(int alertId, int sensorMetricId)
+        public async Task<ExecutionResult> DeleteAlertRule(int alertId, int sensorMetricId, int groupId)
         {
             var result = new ExecutionResult();
             var foundAlert = await _crudAlertRepository.GetByIdAsync(alertId);
@@ -37,10 +41,13 @@ namespace Managers
                 result.Success = isSuccess;
             }
 
+            if(result.Success)
+                await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
+
             return result;
         }
 
-        public async Task<ExecutionResult> EditAlertRule(CreateAlertReq req, int sensorMetricId, int alertId)
+        public async Task<ExecutionResult> EditAlertRule(CreateAlertReq req, int sensorMetricId, int alertId, int groupId)
         {
             var result = new ExecutionResult();
 
@@ -71,6 +78,9 @@ namespace Managers
 
             var isSuccess = await _crudAlertRepository.UpdateAsync(foundAlert);
 
+            if(isSuccess)
+                await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
+
             result.Success = isSuccess;
             return result;
         }
@@ -97,7 +107,7 @@ namespace Managers
             return result;
         }
 
-        public async Task<ExecutionResult> CreateAlertRule(CreateAlertReq req, int sensorMetricId)
+        public async Task<ExecutionResult> CreateAlertRule(CreateAlertReq req, int sensorMetricId, int groupId)
         {
             var result = new ExecutionResult();
             var sensorMetric = await _crudSensorMetricRepository.GetByIdAsync(sensorMetricId);
@@ -120,6 +130,9 @@ namespace Managers
             };
 
             var isSuccess = await _crudAlertRepository.AddAsync(alert);
+
+            if(isSuccess)
+                await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
 
             result.Success = isSuccess;
             return result;
