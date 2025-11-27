@@ -24,6 +24,7 @@ namespace SmartWeather
 {
     public class Program
     {
+        private const string LocalhostCorsPolicy = "LocalhostClientPolicy";
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,19 @@ namespace SmartWeather
             builder.Host.UseSerilog();
             try
             {
+                builder.Services.AddCors(options =>
+                {
+                    options.AddPolicy(name: LocalhostCorsPolicy,
+                        policy =>
+                        {
+                            policy.WithOrigins("http://localhost:3000") 
+                                .AllowAnyHeader()                       
+                                .AllowAnyMethod()                      
+                                .AllowCredentials();                    
+                        });
+                });
+
+
                 builder.Services.AddHttpContextAccessor();
 
                 builder.Services.AddAuthorization(options =>
@@ -128,6 +142,8 @@ namespace SmartWeather
                 app.UseHttpsRedirection();
 
                 app.UseRouting();
+
+                app.UseCors(LocalhostCorsPolicy);
 
                 app.UseAuthentication();
                 app.UseAuthorization();
