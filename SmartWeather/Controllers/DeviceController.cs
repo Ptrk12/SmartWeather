@@ -64,7 +64,7 @@ namespace SmartWeather.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateDevice([FromForm] CreateDeviceReq req,int deviceId, int groupId)
         {        
-            var result = await _deviceManager.EditDeviceAsync(req, deviceId);
+            var result = await _deviceManager.EditDeviceAsync(req, deviceId,groupId);
 
             return result.Success == true ? NoContent() : Conflict(result.Message);
         }

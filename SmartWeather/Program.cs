@@ -87,6 +87,7 @@ namespace SmartWeather
                 builder.Services.AddScoped<IAlertManager, AlertManager>();
                 builder.Services.AddScoped<IAlertLogsRepository, AlertLogsRepository>();
                 builder.Services.AddScoped<IAlertLogsManager, AlertLogsManager>();
+                builder.Services.AddScoped<IImageManager, ImageManager>();
 
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {
@@ -120,6 +121,7 @@ namespace SmartWeather
 
                 builder.Services.AddIdentityAndAuthentication(builder.Configuration);
                 builder.Services.AddSwaggerServices();
+                builder.Services.AddDistributedMemoryCache();
 
                 builder.Services.AddTransient<ErrorHandlerMiddleware>();
 
