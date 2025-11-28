@@ -5,7 +5,6 @@ using Microsoft.Extensions.Caching.Distributed;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
-using System.Text.RegularExpressions;
 
 namespace Managers
 {
