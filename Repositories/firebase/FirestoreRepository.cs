@@ -1,17 +1,22 @@
 ﻿
 using Google.Cloud.Firestore;
+using Google.Cloud.Firestore.V1;
 using Interfaces.Repositories.firebase;
+using Microsoft.Extensions.Logging;
 using Models.firebase;
+using Models.mqtt;
 using Models.responses;
 namespace Repositories.firebase
 {
     public class FirebaseRepository : IFirebaseRepository
     {
         private readonly FirestoreDb _db;
+        private readonly ILogger<FirebaseRepository> _logger;
         private const string DevicesCollection = "devices";
-        public FirebaseRepository(FirestoreDb db)
+        public FirebaseRepository(FirestoreDb db,ILogger<FirebaseRepository> logger)
         {
             _db = db;   
+            _logger = logger;
         }
         public async Task<FirebaseDeviceMeasurement?> GetLatestDeviceMeasurementAsync(string deviceSerialNumber)
         {
@@ -60,6 +65,27 @@ namespace Repositories.firebase
                    .ToList();
 
             return result;
+        }
+
+        public async Task PushToFirestore(string serialNumber, MqttMessage message)
+        {
+            try
+            {
+                var docRef = _db.Collection("devices").Document(serialNumber);
+
+                var data = new Dictionary<string, object>
+                    {
+                        { "serialNumber", message.SerialNumber },
+                        { "timestamp", message.Timestamp },
+                        { "parameters", message.Parameters }
+                    };
+
+                await docRef.Collection("measurements").AddAsync(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Firestore error during inserting message");
+            }
         }
 
     }
