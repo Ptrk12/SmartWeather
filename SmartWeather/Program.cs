@@ -6,9 +6,11 @@ using Interfaces.Repositories.firebase;
 using Managers;
 using Managers.auth;
 using Managers.validation;
+using Managers.workers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MQTTnet;
 using Repositories;
 using Repositories.firebase;
 using Repositories.SqlContext;
@@ -122,6 +124,10 @@ namespace SmartWeather
                 builder.Services.AddIdentityAndAuthentication(builder.Configuration);
                 builder.Services.AddSwaggerServices();
                 builder.Services.AddDistributedMemoryCache();
+
+                builder.Services.AddHostedService<MqttBackgroundWorker>();
+                builder.Services.AddSingleton<IMqttClient>(new MqttClientFactory().CreateMqttClient());
+
 
                 builder.Services.AddTransient<ErrorHandlerMiddleware>();
 

@@ -1,4 +1,5 @@
 ﻿using Models.firebase;
+using Models.mqtt;
 using Models.responses;
 
 namespace Interfaces.Repositories.firebase
@@ -7,5 +8,6 @@ namespace Interfaces.Repositories.firebase
     {
         Task<IEnumerable<FirebaseDeviceMeasurement>> GetDeviceMeasurementAsync(string deviceSerialNumber);
         Task<FirebaseDeviceMeasurement?> GetLatestDeviceMeasurementAsync(string deviceSerialNumber);
+        Task PushToFirestore(string serialNumber, MqttMessage message);
     }
 }

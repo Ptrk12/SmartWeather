@@ -80,5 +80,18 @@ namespace Repositories
             }
         }
 
+        public async Task UpdateDeviceLastMeasurement(string serialNumber, DateTimeOffset date)
+        {
+            try
+            {
+                var query = _context.Devices.Where(d => d.SerialNumber == serialNumber);
+                await query.ExecuteUpdateAsync(d => d.SetProperty(device => device.LastMeasurement, date));
+            }
+            catch (Exception ex)
+            {
+                //log here
+            }
+        }
+
     }
 }
