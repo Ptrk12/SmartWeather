@@ -1,11 +1,14 @@
-﻿using Interfaces.Managers;
+﻿using Core.Extensions;
+using Interfaces.Managers;
 using Interfaces.Repositories;
 using Interfaces.Repositories.firebase;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
+using System.Text.RegularExpressions;
 
 namespace Managers
 {
@@ -16,12 +19,16 @@ namespace Managers
         private readonly IConfiguration _configuration;
         private readonly IFirebaseRepository _firebaseRepository;
         private readonly IAlertRepository _alertRepository;
+        private readonly IDistributedCache _cache;
+        private readonly IImageManager _imageManager;
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
             IConfiguration configuration,
             IDeviceRepository deviceRepository,
             IFirebaseRepository firebaseRepository,
-            IAlertRepository alertRepository
+            IAlertRepository alertRepository,
+            IDistributedCache cache,
+            IImageManager imageManager
             )
         {
             _deviceGeneralRepository = deviceGeneralRepository;
@@ -29,45 +36,11 @@ namespace Managers
             _deviceRepository = deviceRepository;
             _firebaseRepository = firebaseRepository;
             _alertRepository = alertRepository;
+            _cache = cache;
+            _imageManager = imageManager;
         }
 
-        private bool CheckIfImage(IFormFile? file)
-        {
-            var allowedMimeTypes = new[] { "image/jpeg", "image/png" };
 
-            if (file != null && !allowedMimeTypes.Contains(file.ContentType))
-            {
-                return false;
-            }
-            return true;
-        }
-
-        private async Task<string> UploadImage(Device? device, CreateDeviceReq req)
-        {
-            var rootPath = _configuration.GetSection("Images").GetValue<string>("StoragePath");
-            var deviceFolder = Path.Combine(rootPath, req.SerialNumber);
-
-            if (!Directory.Exists(deviceFolder))
-                Directory.CreateDirectory(deviceFolder);
-
-            if (device != null && !string.IsNullOrEmpty(device.Image))
-            {
-                var oldImagePath = Path.Combine(rootPath, device.Image);
-                if (File.Exists(oldImagePath))
-                    File.Delete(oldImagePath);
-            }
-
-            var extension = Path.GetExtension(req.ImageFile.FileName);
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var fullPath = Path.Combine(deviceFolder, fileName);
-
-            using (var stream = new FileStream(fullPath, FileMode.Create))
-            {
-                await req.ImageFile.CopyToAsync(stream);
-            }
-
-            return Path.Combine(req.SerialNumber, fileName).Replace("\\", "/");
-        }
 
         public async Task<bool> DeleteDeviceAsync(int deviceId)
         {
@@ -81,7 +54,15 @@ namespace Managers
             {
                 Directory.Delete(deviceFolder, true);
             }
-            return await _deviceGeneralRepository.DeleteAsync(device);
+            var isSuccess = await _deviceGeneralRepository.DeleteAsync(device);
+
+            if (isSuccess)
+            {
+                _imageManager.DeleteImageAsync(device.SerialNumber);
+                 await _cache.RemoveAsync($"group-{device.GroupId}-devices-with-alerts");
+            }
+
+            return isSuccess;
         }
 
         private async Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId)
@@ -146,32 +127,36 @@ namespace Managers
 
         public async Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId)
         {
-            var devices = await _deviceRepository.GetDevicesInGroupAsync(groupId);
+            string cacheKey = $"group-{groupId}-devices-with-alerts";
 
-            if (!devices.Any())
-                return Enumerable.Empty<DeviceResponse>();
-
-            var tasks = devices.Select(async device =>
+            return await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var status = await GetDeviceAlerts(device.SerialNumber, device.Id);
+                var devices = await _deviceRepository.GetDevicesInGroupAsync(groupId);
 
-                return new DeviceResponse
+                if (!devices.Any())
+                    return Enumerable.Empty<DeviceResponse>();
+
+                var tasks = devices.Select(async device =>
                 {
-                    Id = device.Id,
-                    SerialNumber = device.SerialNumber,
-                    Location = device.Location,
-                    Image = device.Image,
-                    Status = device.Status.ToString(),
-                    LastMeasurement = device.LastMeasurement,
-                    AlertStatuses = status
-                };
-            });
+                    var status = await GetDeviceAlerts(device.SerialNumber, device.Id);
 
-            return await Task.WhenAll(tasks);
+                    return new DeviceResponse
+                    {
+                        Id = device.Id,
+                        SerialNumber = device.SerialNumber,
+                        Location = device.Location,
+                        Image = device.Image,
+                        Status = device.Status.ToString(),
+                        LastMeasurement = device.LastMeasurement,
+                        AlertStatuses = status
+                    };
+                });
+
+                return await Task.WhenAll(tasks);
+            },new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)});       
         }
 
-
-        public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId)
+        public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId, int groupId)
         {
             var result = new ExecutionResult();
             var device = await _deviceGeneralRepository.GetByIdAsync(deviceId);
@@ -200,7 +185,7 @@ namespace Managers
             }
             if (req.ImageFile != null && req.ImageFile.Length > 0)
             {
-                if (!CheckIfImage(req.ImageFile))
+                if (!_imageManager.CheckIfImage(req.ImageFile))
                 {
                     result.Message = "Invalid image file type. Only JPEG and PNG are allowed.";
                     return result;
@@ -208,18 +193,27 @@ namespace Managers
 
                 if (serialChanged && Directory.Exists(oldFolder))
                 {
-                    device.Image = await UploadImage(device, req);
+                    device.Image = await _imageManager.UploadImage(device, req);
                     Directory.Delete(oldFolder, true);
                 }
                 else
                 {
-                    device.Image = await UploadImage(device, req);
+                    device.Image = await _imageManager.UploadImage(device, req);
                 }
             }
             device.SerialNumber = newSerial;
             device.Location = req.Location;
 
             var isSuccess = await _deviceGeneralRepository.UpdateAsync(device);
+
+            if (!isSuccess)
+            {
+                if (!string.IsNullOrEmpty(device.Image))
+                    _imageManager.DeleteImageAsync(req.SerialNumber);
+            }
+            else
+                await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
+
             result.Success = isSuccess;
 
             return result;
@@ -239,12 +233,12 @@ namespace Managers
 
             if (req.ImageFile != null && req.ImageFile.Length > 0)
             {
-                if (!CheckIfImage(req.ImageFile))
+                if (!_imageManager.CheckIfImage(req.ImageFile))
                 {
                     result.Message = "Invalid image file type. Only JPEG and PNG are allowed.";
                     return result;
                 }
-                device.Image = await UploadImage(null, req);
+                device.Image = await _imageManager.UploadImage(null, req);
             }
 
             var historicalDevice = await _deviceRepository.GetLatestHistoricalRecord(req.SerialNumber);
@@ -256,37 +250,52 @@ namespace Managers
             }
 
             var isSuccess = await _deviceGeneralRepository.AddAsync(device);
+
+            if (isSuccess)
+                await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
+            else
+            {
+                if(!string.IsNullOrEmpty(device.Image))
+                    _imageManager.DeleteImageAsync(req.SerialNumber);
+            }
+                
+
             result.Success = isSuccess;
             return result;
         }
 
         public async Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType)
         {
-            var devicecSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
+            var cacheKey = $"device-{deviceId}-measurements-{parameterType}";
 
-            var result = new MeasurementResponse()
+            return await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                Parameter = parameterType,
-            };
+                var devicecSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
 
-            if (string.IsNullOrEmpty(devicecSerialNumber))
-                return result;
-
-            var deviceMeasurements = await _firebaseRepository.GetDeviceMeasurementAsync(devicecSerialNumber);
-
-            foreach (var measurement in deviceMeasurements)
-            {
-                var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
-
-                if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), out var parsedValue))
+                var result = new MeasurementResponse()
                 {
-                    result.Measurements[DateTimeOffset.FromUnixTimeSeconds(measurement.Timestamp)] = parsedValue;
+                    Parameter = parameterType,
+                };
+
+                if (string.IsNullOrEmpty(devicecSerialNumber))
+                    return result;
+
+                var deviceMeasurements = await _firebaseRepository.GetDeviceMeasurementAsync(devicecSerialNumber);
+
+                foreach (var measurement in deviceMeasurements)
+                {
+                    var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
+
+                    if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), out var parsedValue))
+                    {
+                        result.Measurements[DateTimeOffset.FromUnixTimeSeconds(measurement.Timestamp)] = parsedValue;
+                    }
                 }
-            }
-            result.Measurements = result.Measurements
-                                        .OrderByDescending(kv => kv.Key)
-                                        .ToDictionary(kv => kv.Key, kv => kv.Value);
-            return result;
+                result.Measurements = result.Measurements
+                                            .OrderByDescending(kv => kv.Key)
+                                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+                return result;
+            },new DistributedCacheEntryOptions {AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)});        
         }
     }
 }
