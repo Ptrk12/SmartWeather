@@ -1,10 +1,12 @@
-﻿using Interfaces.Repositories;
+﻿using Core.Enums;
+using Interfaces.Repositories;
 using Interfaces.Repositories.firebase;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Models.mqtt;
+using Models.SqlEntities;
 using MQTTnet;
 using MQTTnet.Formatter;
 using System.Text.Json;
@@ -91,7 +93,71 @@ namespace Managers.workers
 
             await firebaseRepo.PushToFirestore(serialNumber, data);
             await deviceRepo.UpdateDeviceLastMeasurement(serialNumber, date);
-           // await InsertAlertLog(serialNumber, data);
+            await InsertAlertLog(serialNumber, data);
         }
+
+        private async Task InsertAlertLog(string serialNumber, MqttMessage data)
+        {
+            using var scope = _serviceProvider.CreateScope();
+
+            var alertRepo = scope.ServiceProvider.GetRequiredService<IAlertRepository>();
+            var deviceRepo = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
+
+            var deviceId = await deviceRepo.GetDeviceIdBySerialNumber(serialNumber);
+
+            if (deviceId == null)
+            {
+                return;
+            }
+
+            var alertRules = await alertRepo.GetDeviceAlertRules((int)deviceId);
+
+            if (alertRules == null || !alertRules.Any())
+            {
+                return;
+            }
+
+            var parameters = data.Parameters
+                .SelectMany(d => d)
+                .ToDictionary(k => k.Key.ToLower(), v => v.Value);
+
+            var logsToAdd = new List<AlertLog>();
+
+            foreach (var alert in alertRules.Where(a => a.IsEnabled))
+            {
+                var sensorType = alert.SensorMetric.SensorType.ToString().ToLower();
+
+                if (!parameters.TryGetValue(sensorType, out var sensorValue))
+                    continue;
+
+                bool triggered = alert.Condition 
+                    
+                switch
+                {
+                    AlertCondition.GreaterThan => sensorValue > alert.ThresholdValue,
+                    AlertCondition.LessThan => sensorValue < alert.ThresholdValue,
+                    _ => false
+                };
+
+                if (triggered)
+                {
+                    var log = new AlertLog
+                    {
+                        AlertId = alert.Id,
+                        TriggeredValue = sensorValue,
+                        TriggeredValueThreshold = alert.ThresholdValue
+                    };
+                    logsToAdd.Add(log);
+                }
+            }
+            if (logsToAdd.Any())
+            {
+                var alertLogsRepo = scope.ServiceProvider.GetRequiredService<IAlertLogsRepository>();
+
+                await alertLogsRepo.InsertAlertLogs(logsToAdd);
+
+            }
+        }
+
     }
 }

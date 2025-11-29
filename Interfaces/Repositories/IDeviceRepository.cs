@@ -10,5 +10,6 @@ namespace Interfaces.Repositories
         Task<Device?> GetLatestHistoricalRecord(string serialNumber);
         Task<bool> IsDeviceAllowedForUser(string userId, int groupId, int deviceId);
         Task UpdateDeviceLastMeasurement(string serialNumber, DateTimeOffset date);
+        Task<int?> GetDeviceIdBySerialNumber(string serialNumber);
     }
 }

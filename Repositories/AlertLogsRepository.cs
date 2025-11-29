@@ -15,6 +15,18 @@ namespace Repositories
             _db = db;
         }
 
+        public async Task InsertAlertLogs(IEnumerable<AlertLog> alertLogs)
+        {
+            try
+            {
+                await _db.AlertLogs.AddRangeAsync(alertLogs);
+                await _db.SaveChangesAsync();
+            }
+            catch
+            {
+                // log here
+            }
+        }
         public async Task<PagedResult<AlertLog>> GetDeviceAlertLogs(int deviceId, int pageNumber, int pageSize)
         {
             try
