@@ -1,5 +1,6 @@
 
-<img width="2048" height="2048" alt="logo" src="https://github.com/user-attachments/assets/2524914e-7684-439d-bc3f-52051bbea462" />
+<img width="2033" height="1555" alt="logo" src="https://github.com/user-attachments/assets/278b7c0c-2bc4-44fb-8b13-c013ffac3ca4" />
+
 
 
 # 🌤️ SmartWeather API
