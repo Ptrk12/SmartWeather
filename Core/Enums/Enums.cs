@@ -31,7 +31,6 @@ namespace Core.Enums
         Temperature,
         Humidity,
         Pressure,
-        PM1,
         PM2_5,
         PM10
     }
