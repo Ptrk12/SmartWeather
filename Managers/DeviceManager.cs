@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Managers
@@ -264,38 +265,50 @@ namespace Managers
             return result;
         }
 
-        public async Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType)
+        public async Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType, DateTimeOffset? dateFrom, DateTimeOffset? dateTo)
         {
-            var cacheKey = $"device-{deviceId}-measurements-{parameterType}";
+            var cacheKey = $"device-{deviceId}-measurements";
+            parameterType = parameterType.ToLower();
 
-            return await _cache.GetOrSetAsync(cacheKey, async () =>
+            var deviceMeasurements = await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var devicecSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
+                var deviceSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
+                if (string.IsNullOrEmpty(deviceSerialNumber))
+                    return null; 
 
-                var result = new MeasurementResponse()
-                {
-                    Parameter = parameterType,
-                };
+                var firebaseData = await _firebaseRepository.GetDeviceMeasurementAsync(deviceSerialNumber);            
+                return firebaseData; 
 
-                if (string.IsNullOrEmpty(devicecSerialNumber))
-                    return result;
+            }, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
 
-                var deviceMeasurements = await _firebaseRepository.GetDeviceMeasurementAsync(devicecSerialNumber);
+            var result = new MeasurementResponse()
+            {
+                Parameter = parameterType,
+                Measurements = new Dictionary<DateTimeOffset, double>()
+            };
 
-                foreach (var measurement in deviceMeasurements)
-                {
-                    var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
-
-                    if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), out var parsedValue))
-                    {
-                        result.Measurements[DateTimeOffset.FromUnixTimeSeconds(measurement.Timestamp)] = parsedValue;
-                    }
-                }
-                result.Measurements = result.Measurements
-                                            .OrderByDescending(kv => kv.Key)
-                                            .ToDictionary(kv => kv.Key, kv => kv.Value);
+            if(deviceMeasurements == null || !deviceMeasurements.Any())
                 return result;
-            },new DistributedCacheEntryOptions {AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)});        
+
+            foreach (var measurement in deviceMeasurements)
+            {
+                var measurementTime = DateTimeOffset.FromUnixTimeSeconds(measurement.Timestamp);
+
+                if ((dateFrom.HasValue && measurementTime < dateFrom.Value) || (dateTo.HasValue && measurementTime > dateTo.Value))
+                {
+                    continue; 
+                }
+                var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
+
+                if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue))
+                {
+                    result.Measurements[measurementTime] = parsedValue;
+                }
+            }
+            result.Measurements = result.Measurements
+                                        .OrderByDescending(kv => kv.Key)
+                                        .ToDictionary(kv => kv.Key, kv => kv.Value);
+            return result;
         }
     }
 }

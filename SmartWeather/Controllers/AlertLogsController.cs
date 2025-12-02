@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.responses;
-using Models.SqlEntities;
 
 namespace SmartWeather.Controllers
 {
@@ -30,7 +29,7 @@ namespace SmartWeather.Controllers
         /// <returns>Returns 200 OK with a list of AlertLog objects.</returns>
         [Authorize(Policy = "AllRoles")]
         [HttpGet("get-device-alert-logs")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PagedResult<AlertLog>>))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<PagedResult<AlertLogResponse>>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetDeviceAlertLogs(int deviceId, int pageNumber = 1, int pageSize = 25)

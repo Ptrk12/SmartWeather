@@ -18,6 +18,11 @@ namespace SmartWeather.Controllers
 
         /// <summary>
         /// Adds a new sensor metric to the specified device.
+        /// SENSOR TYPES:
+        ///Temperature,
+       /// Humidity,
+       /// Pressure,
+       /// Dust
         /// </summary>
         /// <remarks>
         /// Requires authorization with the 'Admin' policy.
