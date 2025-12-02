@@ -116,20 +116,26 @@ namespace SmartWeather.Controllers
         /// Retrieves measurement data for a specific device and parameter type.
         /// </summary>
         /// <remarks>
-        /// Requires authorization with the 'AllRoles' policy. The parameter type is passed via query string.
+        /// Requires authorization with the 'AllRoles' policy.
+        /// 
+        /// **Date Range Constraint:**
+        /// The maximum difference between <paramref name="dateTo"/> and <paramref name="dateFrom"/> 
+        /// **must not exceed 30 days**.
         /// </remarks>
         /// <param name="groupId">The ID of the group (from URL path).</param>
         /// <param name="deviceId">The ID of the device (from URL path).</param>
-        /// <param name="parameterType">The type of measurement parameter to retrieve (from query string) Available values:temperature, humidity, pressure, pm2_5, pm10 </param>
-        /// <returns>Returns 200 OK with a list of measurements.</returns>
+        /// <param name="parameterType">The type of measurement parameter to retrieve (from query string). Available values: temperature, humidity, pressure, pm2_5, pm10 </param>
+        /// <param name="dateFrom">Optional start date to filter measurements. **(Max 30 days prior to dateTo)**.</param>
+        /// <param name="dateTo">Optional end date to filter measurements (defaults to current time).</param>
+        /// <returns>Returns 200 OK with measurements </returns>
         [Authorize(Policy = "AllRoles")]
         [HttpGet("{deviceId}/measurements")]
         [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<MeasurementResponse>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public async Task<IActionResult> GetDeviceMeasurement(int groupId, int deviceId, string parameterType)
+        public async Task<IActionResult> GetDeviceMeasurement(int groupId, int deviceId, string parameterType, DateTimeOffset? dateFrom, DateTimeOffset? dateTo)
         {
-            var measurements = await _deviceManager.GetDeviceMeasurementAsync(deviceId, parameterType);
+            var measurements = await _deviceManager.GetDeviceMeasurementAsync(deviceId, parameterType,dateFrom,dateTo);
             return Ok(measurements);
         }
     }
