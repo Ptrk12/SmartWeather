@@ -10,6 +10,6 @@ namespace Interfaces.Managers
         Task<ExecutionResult> UpdateSensorMetricAsync(int deviceId, int sensorMetricId, CreateSensorMetric req);
         Task<ExecutionResult> DeleteSensorMetricAsync(int deviceId, int sensorMetricId);
         Task<IEnumerable<SensorMetricResponse>> GetSensorMetricsAsync(int deviceId);
-        Task<SensorMetricResponse?> GetSensorMetricByIdAsync(int sensorMetricId);
+        Task<IEnumerable<SensorMetricResponse>> GetSensorMetricByIdAsync(int sensorMetricId);
     }
 }
