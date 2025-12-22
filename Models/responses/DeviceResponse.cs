@@ -4,6 +4,8 @@
     {
         public int Id { get; set; }
         public string SerialNumber { get; set; }
+        public double Longitude { get; set; }
+        public double Latitude { get; set; }
         public string? Image { get; set; }
         public string Location { get; set; }
         public string Status { get; set; }

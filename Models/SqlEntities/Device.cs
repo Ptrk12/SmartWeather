@@ -14,6 +14,10 @@ namespace Models.SqlEntities
         public string? Image { get; set; }
         [Required]
         public string Location { get; set; }
+        [Required]
+        public double Latitude { get; set; }
+        [Required]
+        public double Longitude { get; set; }
         public DeviceStatus Status { get; set; } = DeviceStatus.Pending;
         [Required]
         public int GroupId { get; set; }

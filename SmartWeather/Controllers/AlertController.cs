@@ -132,6 +132,6 @@ namespace SmartWeather.Controllers
         {
             var result = await _alertManager.GetAlertRuleById(sensorMetricId,alertId);
             return result.Success == true ? Ok(result.Data) : NotFound(result.Message);
-        }
+        }     
     }
 }

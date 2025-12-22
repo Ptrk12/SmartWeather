@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.requests;
 using Models.responses;
-using Models.SqlEntities;
-using System.Diagnostics.Metrics;
+using System.Text.Json;
 
 namespace SmartWeather.Controllers
 {
@@ -13,10 +12,12 @@ namespace SmartWeather.Controllers
     public class DeviceController : ControllerBase
     {
         private readonly IDeviceManager _deviceManager;
+        private readonly IDeviceMonitorManager _deviceMonitorManager;
 
-        public DeviceController(IDeviceManager deviceManager)
+        public DeviceController(IDeviceManager deviceManager, IDeviceMonitorManager deviceMonitorManager)
         {
             _deviceManager = deviceManager;
+            _deviceMonitorManager = deviceMonitorManager;
         }
 
         /// <summary>
@@ -137,6 +138,57 @@ namespace SmartWeather.Controllers
         {
             var measurements = await _deviceManager.GetDeviceMeasurementAsync(deviceId, parameterType,dateFrom,dateTo);
             return Ok(measurements);
+        }
+
+        /// <summary>
+        /// Establishes a real-time event stream to monitor alerts for a specific device.
+        /// </summary>
+        /// <remarks>
+        /// Requires authorization with the 'AllRoles' policy.
+        /// 
+        /// **Protocol Information:**
+        /// This endpoint uses **Server-Sent Events (SSE). It keeps the connection open and pushes data 
+        /// to the client whenever an alert status changes (new alert or alert resolved).
+        /// 
+        /// **Data Format:**
+        /// The stream sends data in `text/event-stream` format. Each message is a JSON object 
+        /// prefixed with `data: `.
+        /// 
+        /// **Connection Management:**
+        /// - The server sends update every 1 minute.
+        /// - The connection remains active until the client disconnects or the server stops.
+        /// - Proxy servers (like Nginx) are instructed not to buffer the response (`X-Accel-Buffering: no`).
+        /// </remarks>
+        /// <param name="deviceId">The ID of the device to monitor (from URL path).</param>
+        /// <returns>
+        /// Returns a continuous stream of <see cref="AlertStreamResultResponse"/> objects.
+        /// </returns>
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("{deviceId}/alerts/stream")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AlertStreamResultResponse))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task GetAlertsStream(int deviceId)
+        {
+            IHeaderDictionary headers = Response.Headers;
+
+            headers.Append("Content-Type", "text/event-stream");
+            headers.Append("Cache-Control", "no-cache");
+            headers.Append("Connection", "keep-alive");
+            headers.Append("X-Accel-Buffering", "no");
+
+            var cancellationToken = HttpContext.RequestAborted;
+
+            try
+            {
+                await foreach(var alerts in _deviceMonitorManager.MonitorDeviceStream(deviceId, cancellationToken))
+                {
+                    var json = JsonSerializer.Serialize(alerts);
+                    await Response.WriteAsync($"data: {json}\n\n");
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            catch (OperationCanceledException) { }
         }
     }
 }
