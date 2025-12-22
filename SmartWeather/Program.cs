@@ -43,10 +43,10 @@ namespace SmartWeather
                     options.AddPolicy(name: LocalhostCorsPolicy,
                         policy =>
                         {
-                            policy.WithOrigins("http://localhost:3000") 
-                                .AllowAnyHeader()                       
-                                .AllowAnyMethod()                      
-                                .AllowCredentials();                    
+                             policy.WithOrigins("http://localhost:3000")
+                                 .AllowAnyHeader()
+                                 .AllowAnyMethod()
+                                 .AllowCredentials();
                         });
                 });
 
