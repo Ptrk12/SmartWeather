@@ -23,7 +23,7 @@ namespace Managers
             {
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var deviceManager = scope.ServiceProvider.GetRequiredService<DeviceManager>();
+                    var deviceManager = scope.ServiceProvider.GetRequiredService<IDeviceManager>();
                     var deviceRepository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
 
                     var deviceSerialNumber = await deviceRepository.GetDeviceSerialNumberAsync(deviceId);
@@ -71,7 +71,7 @@ namespace Managers
                 }
                 try
                 {
-                    await Task.Delay(5000, cancellationToken);
+                    await Task.Delay(60000, cancellationToken);
                 }
                 catch (TaskCanceledException)
                 {

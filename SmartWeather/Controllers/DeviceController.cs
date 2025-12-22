@@ -140,8 +140,34 @@ namespace SmartWeather.Controllers
             return Ok(measurements);
         }
 
+        /// <summary>
+        /// Establishes a real-time event stream to monitor alerts for a specific device.
+        /// </summary>
+        /// <remarks>
+        /// Requires authorization with the 'AllRoles' policy.
+        /// 
+        /// **Protocol Information:**
+        /// This endpoint uses **Server-Sent Events (SSE). It keeps the connection open and pushes data 
+        /// to the client whenever an alert status changes (new alert or alert resolved).
+        /// 
+        /// **Data Format:**
+        /// The stream sends data in `text/event-stream` format. Each message is a JSON object 
+        /// prefixed with `data: `.
+        /// 
+        /// **Connection Management:**
+        /// - The server sends update every 1 minute.
+        /// - The connection remains active until the client disconnects or the server stops.
+        /// - Proxy servers (like Nginx) are instructed not to buffer the response (`X-Accel-Buffering: no`).
+        /// </remarks>
+        /// <param name="deviceId">The ID of the device to monitor (from URL path).</param>
+        /// <returns>
+        /// Returns a continuous stream of <see cref="AlertStreamResultResponse"/> objects.
+        /// </returns>
         [Authorize(Policy = "AllRoles")]
         [HttpGet("{deviceId}/alerts/stream")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(AlertStreamResultResponse))]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task GetAlertsStream(int deviceId)
         {
             IHeaderDictionary headers = Response.Headers;
