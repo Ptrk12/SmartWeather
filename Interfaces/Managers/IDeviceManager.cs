@@ -11,5 +11,6 @@ namespace Interfaces.Managers
         Task<IEnumerable<DeviceResponse>> GetDevicesAsync(int groupId);
         Task<bool> DeleteDeviceAsync(int deviceId);
         Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType, DateTimeOffset? dateFrom, DateTimeOffset? dateTo);
+        Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId);
     }    
 }

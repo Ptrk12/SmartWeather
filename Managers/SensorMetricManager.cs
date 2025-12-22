@@ -85,6 +85,14 @@ namespace Managers
             return result;
         }
 
+        private SensorMetricResponse CreateBaseResponse(SensorMetric metric) => new SensorMetricResponse
+        {
+            Id = metric.Id,
+            Name = metric.Name,
+            SensorType = metric.SensorType.ToString(),
+            Unit = metric.Unit
+        };
+
         public async Task<IEnumerable<SensorMetricResponse>> GetSensorMetricsAsync(int deviceId)
         {
             var sensorMetrics = await _sensorMetricRepository.GetAllSensorMetricAsync(deviceId);
@@ -98,21 +106,39 @@ namespace Managers
 
             foreach (var metric in sensorMetrics)
             {
-                var item = new SensorMetricResponse()
+                if (metric.SensorType == SensorType.Dust && !string.IsNullOrEmpty(deviceSerialNumber))
                 {
-                    Id = metric.Id,
-                    Name = metric.Name,
-                    SensorType = metric.SensorType.ToString(),
-                    Unit = metric.Unit
-                };
+                    var typesToProcess = new[] { SensorType.PM2_5, SensorType.PM10 };
 
-                if (!string.IsNullOrEmpty(deviceSerialNumber))
-                {
-                    item.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, metric);
+                    foreach (var type in typesToProcess)
+                    {
+                        var dustItem = CreateBaseResponse(metric);
+                        dustItem.SensorType = type.ToString();
+
+                        var tempMetric = new SensorMetric 
+                        {
+                            Id = metric.Id,
+                            Name = metric.Name,
+                            Unit = metric.Unit,
+                            SensorType = type 
+                        };
+
+                        dustItem.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, tempMetric);
+
+                        result.Add(dustItem);
+                    }
                 }
-                result.Add(item);
+                else
+                {
+                    var item = CreateBaseResponse(metric);
+
+                    if (!string.IsNullOrEmpty(deviceSerialNumber))
+                    {
+                        item.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, metric);
+                    }
+                    result.Add(item);
+                }
             }
-           
             return result;
         }
         private async Task<double?> GetLatestMeasurementForMetric(string deviceSerialNumber, SensorMetric metric)
@@ -124,6 +150,7 @@ namespace Managers
             if (latestMeasurements != null)
             {
                 var key = metric.SensorType.ToString().ToLower();
+
                 var measurementDict = latestMeasurements.Parameters.FirstOrDefault(x => x.ContainsKey(key));
 
                 if (measurementDict != null && measurementDict.TryGetValue(key, out var outValue))
@@ -136,27 +163,47 @@ namespace Managers
             }
             return result;
         }
-        public async Task<SensorMetricResponse?> GetSensorMetricByIdAsync(int sensorMetricId)
+        public async Task<IEnumerable<SensorMetricResponse>> GetSensorMetricByIdAsync(int sensorMetricId)
         {
-            var sensorMetric =  await _sensorMetricCrudRepository.GetByIdAsync(sensorMetricId);
-            
-            if(sensorMetric == null)
-                return null;
+            var result = new List<SensorMetricResponse>();
+            var sensorMetric = await _sensorMetricCrudRepository.GetByIdAsync(sensorMetricId);
 
-            var response = new SensorMetricResponse()
-            {    Id = sensorMetric.Id,
-                Name = sensorMetric.Name,
-                SensorType = sensorMetric.SensorType.ToString(),
-                Unit = sensorMetric.Unit
-            };
+            if (sensorMetric == null)
+                return result;
 
             var deviceSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(sensorMetric.DeviceId);
 
-            if (!string.IsNullOrEmpty(deviceSerialNumber))
+            if (sensorMetric.SensorType == SensorType.Dust && !string.IsNullOrEmpty(deviceSerialNumber))
             {
-                response.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, sensorMetric);
+                var typesToProcess = new[] { SensorType.PM2_5, SensorType.PM10 };
+                foreach (var type in typesToProcess)
+                {
+                    var response = CreateBaseResponse(sensorMetric);
+                    response.SensorType = type.ToString();
+
+                    var tempMetric = new SensorMetric
+                    {
+                        Id = sensorMetric.Id,
+                        Name = sensorMetric.Name,
+                        Unit = sensorMetric.Unit,
+                        SensorType = type
+                    };
+
+                    response.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, tempMetric);
+                    result.Add(response);
+                }
             }
-            return response;
+            else
+            {
+                var response = CreateBaseResponse(sensorMetric);
+                if (!string.IsNullOrEmpty(deviceSerialNumber))
+                {
+                    response.LatestMeasurement = await GetLatestMeasurementForMetric(deviceSerialNumber, sensorMetric);
+                }
+                result.Add(response);
+            }
+
+            return result;
         }
         public async Task<ExecutionResult> DeleteSensorMetricAsync(int deviceId, int sensorMetricId)
         {

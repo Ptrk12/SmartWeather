@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
 namespace Models.requests
 {
@@ -11,6 +10,10 @@ namespace Models.requests
         public string SerialNumber { get; set; }
         [Required]
         public string Location { get; set; }
+        [Required]
+        public double Latitude { get; set; }
+        [Required]
+        public double Longitude { get; set; }
         public IFormFile? ImageFile { get; set; }
     }
 }

@@ -90,6 +90,7 @@ namespace SmartWeather
                 builder.Services.AddScoped<IAlertLogsRepository, AlertLogsRepository>();
                 builder.Services.AddScoped<IAlertLogsManager, AlertLogsManager>();
                 builder.Services.AddScoped<IImageManager, ImageManager>();
+                builder.Services.AddScoped<IDeviceMonitorManager, DeviceMonitorManager>();
 
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {

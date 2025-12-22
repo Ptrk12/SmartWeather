@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Models.requests;
 using Models.responses;
-using Models.SqlEntities;
-using System.Diagnostics.Metrics;
+using System.Text.Json;
 
 namespace SmartWeather.Controllers
 {
@@ -13,10 +12,12 @@ namespace SmartWeather.Controllers
     public class DeviceController : ControllerBase
     {
         private readonly IDeviceManager _deviceManager;
+        private readonly IDeviceMonitorManager _deviceMonitorManager;
 
-        public DeviceController(IDeviceManager deviceManager)
+        public DeviceController(IDeviceManager deviceManager, IDeviceMonitorManager deviceMonitorManager)
         {
             _deviceManager = deviceManager;
+            _deviceMonitorManager = deviceMonitorManager;
         }
 
         /// <summary>
@@ -137,6 +138,31 @@ namespace SmartWeather.Controllers
         {
             var measurements = await _deviceManager.GetDeviceMeasurementAsync(deviceId, parameterType,dateFrom,dateTo);
             return Ok(measurements);
+        }
+
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("{deviceId}/alerts/stream")]
+        public async Task GetAlertsStream(int deviceId)
+        {
+            IHeaderDictionary headers = Response.Headers;
+
+            headers.Append("Content-Type", "text/event-stream");
+            headers.Append("Cache-Control", "no-cache");
+            headers.Append("Connection", "keep-alive");
+            headers.Append("X-Accel-Buffering", "no");
+
+            var cancellationToken = HttpContext.RequestAborted;
+
+            try
+            {
+                await foreach(var alerts in _deviceMonitorManager.MonitorDeviceStream(deviceId, cancellationToken))
+                {
+                    var json = JsonSerializer.Serialize(alerts);
+                    await Response.WriteAsync($"data: {json}\n\n");
+                    await Response.Body.FlushAsync(cancellationToken);
+                }
+            }
+            catch (OperationCanceledException) { }
         }
     }
 }

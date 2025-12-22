@@ -2,14 +2,12 @@
 using Interfaces.Managers;
 using Interfaces.Repositories;
 using Interfaces.Repositories.firebase;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
 using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Managers
 {
@@ -66,7 +64,7 @@ namespace Managers
             return isSuccess;
         }
 
-        private async Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId)
+        public async Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId)
         {
             var result = new List<AlertStatusResponse>();
             var latestMeasurement = await _firebaseRepository.GetLatestDeviceMeasurementAsync(deviceSerialNumber);
@@ -149,7 +147,9 @@ namespace Managers
                         Image = device.Image,
                         Status = device.Status.ToString(),
                         LastMeasurement = device.LastMeasurement,
-                        AlertStatuses = status
+                        AlertStatuses = status,
+                        Latitude = device.Latitude,
+                        Longitude = device.Longitude
                     };
                 });
 
@@ -202,8 +202,11 @@ namespace Managers
                     device.Image = await _imageManager.UploadImage(device, req);
                 }
             }
+
             device.SerialNumber = newSerial;
             device.Location = req.Location;
+            device.Latitude = req.Latitude;
+            device.Longitude = req.Longitude;
 
             var isSuccess = await _deviceGeneralRepository.UpdateAsync(device);
 
@@ -229,7 +232,9 @@ namespace Managers
             {
                 SerialNumber = req.SerialNumber,
                 Location = req.Location,
-                GroupId = groupId
+                GroupId = groupId,
+                Longitude = req.Longitude,
+                Latitude = req.Latitude
             };
 
             if (req.ImageFile != null && req.ImageFile.Length > 0)

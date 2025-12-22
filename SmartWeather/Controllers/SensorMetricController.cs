@@ -123,7 +123,7 @@ namespace SmartWeather.Controllers
         /// <returns>Returns 200 OK with the SensorMetric object.</returns>
         [Authorize(Policy = "AllRoles")]
         [HttpGet("{sensorMetricId}")]
-        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(SensorMetricResponse))]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(IEnumerable<SensorMetricResponse>))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> GetSensorMetricById(int deviceId, int groupId, int sensorMetricId)
