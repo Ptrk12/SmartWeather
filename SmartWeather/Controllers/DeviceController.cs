@@ -140,6 +140,14 @@ namespace SmartWeather.Controllers
             return Ok(measurements);
         }
 
+        [Authorize(Policy = "AllRoles")]
+        [HttpGet("{deviceId}/predict-measurements")]
+        public async Task<IActionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model)
+        {
+            var result = await _deviceManager.PredictWeatherParameters(deviceId, parameterType, hours, model);
+            return result.Success == true ? Ok(result.Data) : Conflict(result.Message);
+        }
+
         /// <summary>
         /// Establishes a real-time event stream to monitor alerts for a specific device.
         /// </summary>

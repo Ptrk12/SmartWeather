@@ -36,4 +36,11 @@ namespace Core.Enums
         PM2_5,
         PM10
     }
+    public enum PredictionModel
+    {
+        bilstm,
+        lstm,
+        attn_lstm,
+        rf
+    }
 }
