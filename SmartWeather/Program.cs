@@ -62,6 +62,13 @@ namespace SmartWeather
                         policy.Requirements.Add(new RoleRequirement("Admin")));
                 });
 
+                builder.Services.AddHttpClient("PredictWeatherClient", client =>
+                {
+                    client.BaseAddress = new Uri(builder.Configuration["Functions:PredictionFunctionUrl"]);
+
+                    client.Timeout = TimeSpan.FromSeconds(60);
+                });
+
                 builder.Services.AddControllers(options =>
                 {
                     options.Filters.Add<ValidateModelFilter>();
