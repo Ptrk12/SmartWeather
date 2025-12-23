@@ -12,5 +12,6 @@ namespace Interfaces.Managers
         Task<bool> DeleteDeviceAsync(int deviceId);
         Task<MeasurementResponse> GetDeviceMeasurementAsync(int deviceId, string parameterType, DateTimeOffset? dateFrom, DateTimeOffset? dateTo);
         Task<IEnumerable<AlertStatusResponse>> GetDeviceAlerts(string deviceSerialNumber, int deviceId);
+        Task<ExecutionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model);
     }    
 }
