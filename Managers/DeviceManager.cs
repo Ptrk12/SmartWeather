@@ -1,4 +1,5 @@
-﻿using Core.Extensions;
+﻿using Core.Enums;
+using Core.Extensions;
 using Interfaces.Managers;
 using Interfaces.Repositories;
 using Interfaces.Repositories.firebase;
@@ -8,6 +9,8 @@ using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
 using System.Globalization;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Managers
 {
@@ -20,6 +23,7 @@ namespace Managers
         private readonly IAlertRepository _alertRepository;
         private readonly IDistributedCache _cache;
         private readonly IImageManager _imageManager;
+        private readonly IHttpClientFactory _httpClientFactory;
         public DeviceManager(
             IGenericCrudRepository<Device> deviceGeneralRepository,
             IConfiguration configuration,
@@ -27,7 +31,8 @@ namespace Managers
             IFirebaseRepository firebaseRepository,
             IAlertRepository alertRepository,
             IDistributedCache cache,
-            IImageManager imageManager
+            IImageManager imageManager,
+            IHttpClientFactory httpClientFactory
             )
         {
             _deviceGeneralRepository = deviceGeneralRepository;
@@ -37,6 +42,7 @@ namespace Managers
             _alertRepository = alertRepository;
             _cache = cache;
             _imageManager = imageManager;
+            _httpClientFactory = httpClientFactory;
         }
 
 
@@ -58,7 +64,7 @@ namespace Managers
             if (isSuccess)
             {
                 _imageManager.DeleteImageAsync(device.SerialNumber);
-                 await _cache.RemoveAsync($"group-{device.GroupId}-devices-with-alerts");
+                await _cache.RemoveAsync($"group-{device.GroupId}-devices-with-alerts");
             }
 
             return isSuccess;
@@ -154,7 +160,7 @@ namespace Managers
                 });
 
                 return await Task.WhenAll(tasks);
-            },new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2)});       
+            }, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2) });
         }
 
         public async Task<ExecutionResult> EditDeviceAsync(CreateDeviceReq req, int deviceId, int groupId)
@@ -261,10 +267,10 @@ namespace Managers
                 await _cache.RemoveAsync($"group-{groupId}-devices-with-alerts");
             else
             {
-                if(!string.IsNullOrEmpty(device.Image))
+                if (!string.IsNullOrEmpty(device.Image))
                     _imageManager.DeleteImageAsync(req.SerialNumber);
             }
-                
+
 
             result.Success = isSuccess;
             return result;
@@ -279,10 +285,10 @@ namespace Managers
             {
                 var deviceSerialNumber = await _deviceRepository.GetDeviceSerialNumberAsync(deviceId);
                 if (string.IsNullOrEmpty(deviceSerialNumber))
-                    return null; 
+                    return null;
 
-                var firebaseData = await _firebaseRepository.GetDeviceMeasurementAsync(deviceSerialNumber);            
-                return firebaseData; 
+                var firebaseData = await _firebaseRepository.GetDeviceMeasurementAsync(deviceSerialNumber);
+                return firebaseData;
 
             }, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) });
 
@@ -292,7 +298,7 @@ namespace Managers
                 Measurements = new Dictionary<DateTimeOffset, double>()
             };
 
-            if(deviceMeasurements == null || !deviceMeasurements.Any())
+            if (deviceMeasurements == null || !deviceMeasurements.Any())
                 return result;
 
             foreach (var measurement in deviceMeasurements)
@@ -301,7 +307,7 @@ namespace Managers
 
                 if ((dateFrom.HasValue && measurementTime < dateFrom.Value) || (dateTo.HasValue && measurementTime > dateTo.Value))
                 {
-                    continue; 
+                    continue;
                 }
                 var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
 
@@ -314,6 +320,83 @@ namespace Managers
                                         .OrderByDescending(kv => kv.Key)
                                         .ToDictionary(kv => kv.Key, kv => kv.Value);
             return result;
+        }
+
+        public async Task<ExecutionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model)
+        {         
+            var result = new ExecutionResult();
+            
+            if (!Enum.TryParse<PredictionModel>(model, out var modelParsed) || !Enum.IsDefined(typeof(PredictionModel), modelParsed))
+            {
+                result.Message = "Invalid prediction model";
+                return result;
+            }
+            if (hours <= 0 || hours > 72)
+            {
+                result.Message = "Prediction hours must be between 1 and 72";
+                return result;
+            }
+
+            var resultData = new MeasurementResponse();
+
+            var client = _httpClientFactory.CreateClient("PredictWeatherClient");
+            var functionKey = _configuration["Functions:Key"];
+
+            if (!string.IsNullOrEmpty(functionKey))
+            {
+                client.DefaultRequestHeaders.Add("x-functions-key", functionKey);
+            }
+
+            var queryString = $"?deviceId={deviceId}&hours={hours}&model={model}";
+            try
+            {
+                var predictionData = await client.GetFromJsonAsync<PredictionResponse>(queryString);
+
+                if (predictionData != null)
+                {
+                    foreach (var prediction in predictionData.Predictions)
+                    {
+                        double valueToAdd = 0;
+                        bool isValidParam = true;
+
+                        switch (parameterType.ToLower())
+                        {
+                            case "temperature":
+                                valueToAdd = prediction.TemperatureC;
+                                break;
+                            case "humidity":
+                                valueToAdd = prediction.Humidity;
+                                break;
+                            case "pressure":
+                                valueToAdd = prediction.Pressure;
+                                break;
+                            case "pm2_5":
+                                valueToAdd = prediction.Pm25;
+                                break;
+                            case "pm10":
+                                valueToAdd = prediction.Pm10;
+                                break;
+                            default:
+                                isValidParam = false;
+                                break;
+                        }
+
+                        if (!isValidParam)
+                        {
+                            result.Message = $"Unsupported parameter type: {parameterType}";
+                            return result;
+                        }
+                    }
+                }
+                result.Data = predictionData;
+                result.Success = true;
+                return result;
+            }
+            catch (Exception ex)
+            {
+                result.Message = $"Error calling prediction function: {ex.Message}";
+                return result;
+            }
         }
     }
 }
