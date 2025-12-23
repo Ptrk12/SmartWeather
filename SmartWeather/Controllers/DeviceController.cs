@@ -140,8 +140,30 @@ namespace SmartWeather.Controllers
             return Ok(measurements);
         }
 
+        /// <summary>
+        /// Generates future weather and pollution predictions using AI models.
+        /// </summary>
+        /// <remarks>
+        /// Requires authorization with the 'AllRoles' policy.
+        /// 
+        /// **Prediction Constraints:**
+        /// * **Model:** Must be a valid AI model name
+        /// * **Hours:** The forecast range must be between **1 and 72 hours**.
+        /// 
+        /// **External Service:**
+        /// This endpoint communicates with an Azure Function running a Python-based machine learning model.
+        /// </remarks>
+        /// <param name="deviceId">The ID of the device for which to generate predictions (from URL path).</param>
+        /// <param name="parameterType">The type of parameter to predict. Available values: temperature, humidity, pressure, pm2_5, pm10.</param>
+        /// <param name="hours">The number of hours to forecast into the future (Range: 1-72).</param>
+        /// <param name="model">The AI model to be used for prediction (lstm,bilstm,rf,attn_lstm).</param>
+        /// <returns>Returns 200 OK with a dictionary of predicted timestamps and values.</returns>
         [Authorize(Policy = "AllRoles")]
         [HttpGet("{deviceId}/predict-measurements")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(MeasurementResponse))]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model)
         {
             var result = await _deviceManager.PredictWeatherParameters(deviceId, parameterType, hours, model);
