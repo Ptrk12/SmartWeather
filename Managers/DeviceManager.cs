@@ -311,9 +311,18 @@ namespace Managers
                 }
                 var deviceParameter = measurement.Parameters.FirstOrDefault(x => x.ContainsKey(parameterType));
 
-                if (deviceParameter != null && double.TryParse(deviceParameter[parameterType].ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue))
+                if (deviceParameter != null)
                 {
-                    result.Measurements[measurementTime] = parsedValue;
+                    var val = deviceParameter[parameterType];
+
+                    if (val is double d)
+                    {
+                        result.Measurements[measurementTime] = d;
+                    }
+                    else if (double.TryParse(val.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue))
+                    {
+                        result.Measurements[measurementTime] = parsedValue;
+                    }
                 }
             }
             result.Measurements = result.Measurements

@@ -118,7 +118,7 @@ namespace SmartWeather.Tests
         }
 
         [Fact]
-        public async Task AddGroupAsync_ShoudlReturnTrue_WhenAddSuccessfully()
+        public async Task AddGroupAsync_ShoudlReturnTrue_WhenAddedSuccessfully()
         {
             var req = new CreateGroupReq
             {
@@ -157,7 +157,7 @@ namespace SmartWeather.Tests
         }
 
         [Fact]
-        public async Task DeleteGroupAsync_ShouldReturnTrue_WhenDeletedSuccessfully()
+        public async Task DeleteGroupAsync_ShouldReturnTrue_WhenDeleteSuccessfully()
         {
             var groupId = 1;
 
