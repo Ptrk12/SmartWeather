@@ -57,7 +57,7 @@ namespace Managers
 
             if(group.Devices.Any())
             {
-                result.Message = "Group has associated devices and cannot be deleted.";
+                result.Message = "Group has associated devices and cannot be deleted";
                 return result;
             }
 
