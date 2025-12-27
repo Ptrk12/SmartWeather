@@ -13,7 +13,7 @@ This system allows to manage groups of devices, track real-time sensor data (Tem
 * **Device Management**: Organize devices into logical groups.
 * **Sensor Metrics**: Dynamic configuration of sensors attached to devices (supports various metric types and units).
 * **Real-Time Monitoring**: Retrieve historical measurement data with date-range filtering.
-* **AI Predictions**: Integrated support for AI forecasting (up to 72 hours) using models like **LSTM, BiLSTM, Attention-LSTM and Random Forest**
+* **AI Predictions**: Integrated support for AI forecasting (up to 72 hours) using models like **LSTM, BiLSTM, Attention-LSTM and Random Forest** (Github repo -> https://github.com/Ptrk12/machine-learning)
 * **Smart Alerting**:
     * Define custom threshold rules.
     * **Server-Sent Events (SSE)** support for real-time alert streaming.
