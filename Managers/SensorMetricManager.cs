@@ -232,22 +232,25 @@ namespace Managers
         public async Task<ExecutionResult> UpdateSensorMetricAsync(int deviceId, int sensorMetricId, CreateSensorMetric req)
         {
             var result = await ValidateSensorMetricAsync(req, deviceId);
+
+            if (!result.Success)
+                return result;
+
             var foundSensorMetric = await _sensorMetricCrudRepository.GetByIdAsync(sensorMetricId);
 
             if (foundSensorMetric == null)
             {
+                result.Success = false;
                 result.Message = "Sensor metric not found";
                 return result;
             }
 
             if (foundSensorMetric.DeviceId != deviceId)
             {
+                result.Success = false;
                 result.Message = "Sensor metric does not belong to the specified device";
                 return result;
             }
-
-            if (!result.Success)
-                return result;
 
             var sensorMetric = new SensorMetric()
             {

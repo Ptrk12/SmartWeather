@@ -422,7 +422,10 @@ namespace SmartWeather.Tests
             result.Should().NotBeEmpty();
             result.Should().HaveCount(2);
             result.First().SerialNumber.Should().Be("SN1");
-            result.Should().BeEquivalentTo(devicesFromDb, options => options.ExcludingMissingMembers());
+            result.Should().BeEquivalentTo(devicesFromDb, options => options.ExcludingMissingMembers().Excluding(x => x.Status));
+
+            result[0].Status.Should().Be(devicesFromDb[0].Status.ToString());
+            result[1].Status.Should().Be(devicesFromDb[1].Status.ToString());
 
             _deviceRepoMock.Verify(x => x.GetDevicesInGroupAsync(It.IsAny<int>()), Times.Once);
 
