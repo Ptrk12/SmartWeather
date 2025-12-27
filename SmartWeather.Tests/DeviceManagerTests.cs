@@ -12,6 +12,8 @@ using Models.requests;
 using Models.responses;
 using Models.SqlEntities;
 using Moq;
+using Moq.Protected;
+using System.Net;
 using System.Text.Json;
 using static Google.Cloud.Firestore.V1.StructuredAggregationQuery.Types.Aggregation.Types;
 
@@ -57,9 +59,9 @@ namespace SmartWeather.Tests
         private DeviceManager CreateSut(Dictionary<string, string>? customSettings = null)
         {
             var settings = customSettings ?? new Dictionary<string, string>
-        {
-            { "Images:StoragePath", "C:\\TestPath" }
-        };
+            {
+                { "Images:StoragePath", "C:\\TestPath" }
+            };
 
             var configuration = new ConfigurationBuilder()
                 .AddInMemoryCollection(settings)
@@ -75,6 +77,32 @@ namespace SmartWeather.Tests
                 _imageManagerMock.Object,
                 _httpClientFactoryMock.Object
             );
+        }
+
+        private void SetupHttpClient(HttpStatusCode statusCode, object responseContent)
+        {
+            var handlerMock = new Mock<HttpMessageHandler>();
+            var response = new HttpResponseMessage
+            {
+                StatusCode = statusCode,
+                Content = new StringContent(System.Text.Json.JsonSerializer.Serialize(responseContent))
+            };
+
+            handlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(response);
+
+            var httpClient = new HttpClient(handlerMock.Object)
+            {
+                BaseAddress = new Uri("http://api-test.com")
+            };
+
+            _httpClientFactoryMock.Setup(x => x.CreateClient("PredictWeatherClient")).Returns(httpClient);
         }
 
         [Fact]
@@ -599,6 +627,135 @@ namespace SmartWeather.Tests
             result.Measurements.Should().HaveCount(1); 
             result.Measurements.Values.First().Should().Be(22.5);
             _cacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), default), Times.Once);
+        }
+        [Fact]
+        public async Task GetDeviceMeasurementAsync_ShouldGetFromCache_WhenCacheHasData()
+        {
+            var deviceId = 1;
+            var dateFrom = DateTimeOffset.UtcNow.AddMinutes(-30);
+            var dateTo = DateTimeOffset.UtcNow;
+            var cacheKey = $"device-{deviceId}-measurements";
+            var sut = CreateSut();
+
+            var firebaseData = new List<FirebaseDeviceMeasurement>
+                {
+                    new FirebaseDeviceMeasurement
+                    {
+                        Timestamp = dateFrom.AddMinutes(10).ToUnixTimeSeconds(),
+                        Parameters = new List<Dictionary<string, object>> { new() { { "temperature", 22.5 } } }
+                    },
+                    new FirebaseDeviceMeasurement
+                    {
+                        Timestamp = dateFrom.AddMinutes(15).ToUnixTimeSeconds(),
+                        Parameters = new List<Dictionary<string, object>> { new() { { "temperature", 50.0 } } }
+                    }
+                };
+
+            var firebaseDataBytes = JsonSerializer.SerializeToUtf8Bytes(firebaseData);
+
+            _cacheMock.Setup(x => x.GetAsync(cacheKey, default)).ReturnsAsync(firebaseDataBytes);
+
+            var result = await sut.GetDeviceMeasurementAsync(deviceId,"temperature",dateFrom,dateTo);
+
+            result.Measurements.Should().HaveCount(2);
+
+            result.Measurements.Values.First().Should().Be(50.0);
+
+            _cacheMock.Verify(x => x.GetAsync(cacheKey, default), Times.Once);
+            _cacheMock.Verify(x => x.SetAsync(It.IsAny<string>(), It.IsAny<byte[]>(), It.IsAny<DistributedCacheEntryOptions>(), default), Times.Never);
+            _deviceRepoMock.Verify(x => x.GetDeviceSerialNumberAsync(It.IsAny<int>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task PredictWeatherParameters_ShouldReturnError_WhenHoursAreInvalid()
+        {
+            var sut = CreateSut();
+
+            var result = await sut.PredictWeatherParameters(1, "temperature", 100, PredictionModel.attn_lstm.ToString());
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Be("Prediction hours must be between 1 and 72");
+        }
+
+        [Fact]
+        public async Task PredictWeatherParameters_ShouldReturnSuccess_WhenApiReturnsValidData()
+        {
+            var sut = CreateSut(new Dictionary<string, string> { { "Functions:Key", "test-key" } });
+            var model = PredictionModel.lstm.ToString();
+            var predictionResponse = new PredictionResponse
+            {
+                Model = model,
+                Hours = 24,
+                Predictions = new List<PredictionPoint>
+            {
+                new PredictionPoint
+                {
+                     Time = DateTime.UtcNow,
+                     TemperatureC = 20.5,
+                     Humidity = 55.0,
+                     Pressure = 1013.0,
+                     Pm25 = 12.5,
+                     Pm10 = 25.0
+                }
+                }
+            };
+
+            SetupHttpClient(HttpStatusCode.OK, predictionResponse);
+
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, model);
+
+            result.Success.Should().BeTrue();
+
+            var data = result.Data as PredictionResponse;
+
+            data.Should().NotBeNull();
+            data.Model.Should().Be(model);
+            data.Predictions.Should().HaveCount(1);
+            data.Predictions.First().TemperatureC.Should().Be(20.5);
+        }
+
+        [Fact]
+        public async Task PredictWeatherParameters_ShouldReturnError_WhenHoursAreOutOfRange()
+        {
+            var model = PredictionModel.rf.ToString();
+
+            var sut = CreateSut();
+
+            var result = await sut.PredictWeatherParameters(1, "temperature", 100, model);
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Be("Prediction hours must be between 1 and 72");
+        }
+
+        [Fact]
+        public async Task PredictWeatherParameters_ShouldReturnError_WhenModelIsInvalid()
+        {
+            var sut = CreateSut();
+
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, "NonExistentModel");
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Be("Invalid prediction model");
+        }
+
+        [Fact]
+        public async Task PredictWeatherParameters_ShouldHandleApiError_UsingCatchBlock()
+        {
+            var sut = CreateSut();
+
+            var handlerMock = new Mock<HttpMessageHandler>();
+            handlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+                .ThrowsAsync(new HttpRequestException("API is down"));
+
+            var httpClient = new HttpClient(handlerMock.Object) { BaseAddress = new Uri("http://api-test.com") };
+
+            _httpClientFactoryMock.Setup(x => x.CreateClient("PredictWeatherClient")).Returns(httpClient);
+
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, PredictionModel.lstm.ToString());
+
+            result.Success.Should().BeFalse();
+            result.Message.Should().Contain("Error calling prediction function");
         }
     }
 }
