@@ -331,7 +331,7 @@ namespace Managers
             return result;
         }
 
-        public async Task<ExecutionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model)
+        public async Task<ExecutionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model, bool mergeWithDeviceData)
         {         
             var result = new ExecutionResult();
             
@@ -356,7 +356,7 @@ namespace Managers
                 client.DefaultRequestHeaders.Add("x-functions-key", functionKey);
             }
 
-            var queryString = $"?deviceId={deviceId}&hours={hours}&model={model}";
+            var queryString = $"?deviceId={deviceId}&hours={hours}&model={model}&mergeWithDeviceData={mergeWithDeviceData}";
             try
             {
                 var predictionData = await client.GetFromJsonAsync<PredictionResponse>(queryString);
