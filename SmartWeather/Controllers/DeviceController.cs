@@ -164,9 +164,9 @@ namespace SmartWeather.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model)
+        public async Task<IActionResult> PredictWeatherParameters(int deviceId, string parameterType, int hours, string model, bool mergeWithDeviceData)
         {
-            var result = await _deviceManager.PredictWeatherParameters(deviceId, parameterType, hours, model);
+            var result = await _deviceManager.PredictWeatherParameters(deviceId, parameterType, hours, model, mergeWithDeviceData);
             return result.Success == true ? Ok(result.Data) : Conflict(result.Message);
         }
 
