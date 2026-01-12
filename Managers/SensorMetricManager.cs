@@ -32,7 +32,7 @@ namespace Managers
             _deviceRepository = deviceRepository;
         }
 
-        private async Task<ExecutionResult> ValidateSensorMetricAsync(CreateSensorMetric req , int deviceId)
+        private async Task<ExecutionResult> ValidateSensorMetricAsync(CreateSensorMetric req , int deviceId, bool isEdit = false)
         {
             var result = new ExecutionResult();
 
@@ -46,7 +46,7 @@ namespace Managers
 
             var deviceMetrics = foundDevice.Metrics;
 
-            if (deviceMetrics.Any(x => x.SensorType.ToString().Equals(req.SensorType, StringComparison.OrdinalIgnoreCase)))
+            if (isEdit == false && deviceMetrics.Any(x => x.SensorType.ToString().Equals(req.SensorType, StringComparison.OrdinalIgnoreCase)))
             {
                 result.Message = "A sensor metric with the same sensor type name already exists for this device";
                 return result;
@@ -231,7 +231,7 @@ namespace Managers
 
         public async Task<ExecutionResult> UpdateSensorMetricAsync(int deviceId, int sensorMetricId, CreateSensorMetric req)
         {
-            var result = await ValidateSensorMetricAsync(req, deviceId);
+            var result = await ValidateSensorMetricAsync(req, deviceId,true);
 
             if (!result.Success)
                 return result;
