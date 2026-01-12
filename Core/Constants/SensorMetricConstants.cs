@@ -11,7 +11,8 @@ namespace Core.Constants
             { SensorType.Temperature.ToString(), FrozenSet.ToFrozenSet(new[] { "°C", "°F" }) },
             { SensorType.Humidity.ToString(), FrozenSet.ToFrozenSet(new[] { "%" }) },
             { SensorType.Pressure.ToString(), FrozenSet.ToFrozenSet(new[] { "hPa" }) },
-            { SensorType.Dust.ToString(), FrozenSet.ToFrozenSet(new[] { "g/m³" }) }
+            { SensorType.PM10.ToString(), FrozenSet.ToFrozenSet(new[] { "g/m³" }) },
+            { SensorType.PM2_5.ToString(), FrozenSet.ToFrozenSet(new[] { "g/m³" }) }
         }.ToFrozenDictionary();
     }
 }

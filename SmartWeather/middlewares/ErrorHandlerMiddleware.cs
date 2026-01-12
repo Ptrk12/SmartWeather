@@ -20,16 +20,14 @@ namespace SmartWeather.middlewares
             }
             catch (Exception ex)
             {
-                _log.LogError(ex, "Exception occured: {message}", ex.Message);
+                _log.LogError(ex, "Exception occured: message: {message} type: {type}", ex.Message, ex.GetType().Name);
 
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 context.Response.ContentType = "application/json";
 
                 var result = JsonSerializer.Serialize(new
                 {
-                    error = ex.Message,
-                    details = ex.InnerException?.Message,
-                    type = ex.GetType().Name
+                    error = "Unexpected error occured"
                 });
 
                 await context.Response.WriteAsync(result);
