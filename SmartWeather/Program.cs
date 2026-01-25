@@ -1,3 +1,6 @@
+using AiChat;
+using AiChat.Plugins;
+using AiChat.Services;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Firestore;
 using Interfaces.Managers;
@@ -10,6 +13,7 @@ using Managers.workers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.SemanticKernel;
 using MQTTnet;
 using Repositories;
 using Repositories.firebase;
@@ -99,6 +103,11 @@ namespace SmartWeather
                 builder.Services.AddScoped<IImageManager, ImageManager>();
                 builder.Services.AddScoped<IDeviceMonitorManager, DeviceMonitorManager>();
 
+                builder.Services.AddSingleton<IntentGuard>();
+                builder.Services.AddScoped<AiChatPlugin>();
+                builder.Services.AddScoped<QdrantSeeder>();
+                builder.Services.AddScoped<KnoweldgeBasePlugin>();
+
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {
                     var loggingInterceptor = serviceProvider.GetRequiredService<EfExceptionLoggingInterceptor>();
@@ -128,6 +137,23 @@ namespace SmartWeather
                     return dbBuilder.Build();
                 });
                 builder.Services.AddScoped<IFirebaseRepository,FirebaseRepository>();
+
+
+                builder.Services.AddScoped<Kernel>(sp =>
+                {
+                    var kernelBuilder = Kernel.CreateBuilder();
+
+                    var apiKey = builder.Configuration["Gemini:ApiKey"] ?? "";
+                    kernelBuilder.AddGoogleAIGeminiChatCompletion("gemini-2.5-flash", apiKey);
+
+                    var aiChatPlugin = sp.GetRequiredService<AiChatPlugin>();
+                    kernelBuilder.Plugins.AddFromObject(aiChatPlugin, "AiChatPlugin");
+
+                    var knoweldgeBasePlugin = sp.GetRequiredService<KnoweldgeBasePlugin>();
+                    kernelBuilder.Plugins.AddFromObject(knoweldgeBasePlugin, "KnoweldgeBasePlugin");
+
+                    return kernelBuilder.Build();
+                });
 
                 builder.Services.AddIdentityAndAuthentication(builder.Configuration);
                 builder.Services.AddSwaggerServices();
