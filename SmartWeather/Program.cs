@@ -19,6 +19,7 @@ using Repositories;
 using Repositories.firebase;
 using Repositories.SqlContext;
 using Serilog;
+using SmartWeather.extensions;
 using SmartWeather.Extensions;
 using SmartWeather.filters;
 using SmartWeather.Filters;
@@ -47,10 +48,10 @@ namespace SmartWeather
                     options.AddPolicy(name: LocalhostCorsPolicy,
                         policy =>
                         {
-                             policy.WithOrigins("http://localhost:3000")
-                                 .AllowAnyHeader()
-                                 .AllowAnyMethod()
-                                 .AllowCredentials();
+                            policy.WithOrigins("http://localhost:3000")
+                                .AllowAnyHeader()
+                                .AllowAnyMethod()
+                                .AllowCredentials();
                         });
                 });
 
@@ -103,10 +104,7 @@ namespace SmartWeather
                 builder.Services.AddScoped<IImageManager, ImageManager>();
                 builder.Services.AddScoped<IDeviceMonitorManager, DeviceMonitorManager>();
 
-                builder.Services.AddSingleton<IntentGuard>();
-                builder.Services.AddScoped<AiChatPlugin>();
-                builder.Services.AddScoped<QdrantSeeder>();
-                builder.Services.AddScoped<KnoweldgeBasePlugin>();
+                builder.Services.AddAiChatServices(builder.Configuration);
 
                 builder.Services.AddDbContext<SqlDbContext>((serviceProvider, options) =>
                 {
@@ -136,24 +134,8 @@ namespace SmartWeather
 
                     return dbBuilder.Build();
                 });
-                builder.Services.AddScoped<IFirebaseRepository,FirebaseRepository>();
 
-
-                builder.Services.AddScoped<Kernel>(sp =>
-                {
-                    var kernelBuilder = Kernel.CreateBuilder();
-
-                    var apiKey = builder.Configuration["Gemini:ApiKey"] ?? "";
-                    kernelBuilder.AddGoogleAIGeminiChatCompletion("gemini-2.5-flash", apiKey);
-
-                    var aiChatPlugin = sp.GetRequiredService<AiChatPlugin>();
-                    kernelBuilder.Plugins.AddFromObject(aiChatPlugin, "AiChatPlugin");
-
-                    var knoweldgeBasePlugin = sp.GetRequiredService<KnoweldgeBasePlugin>();
-                    kernelBuilder.Plugins.AddFromObject(knoweldgeBasePlugin, "KnoweldgeBasePlugin");
-
-                    return kernelBuilder.Build();
-                });
+                builder.Services.AddScoped<IFirebaseRepository, FirebaseRepository>();
 
                 builder.Services.AddIdentityAndAuthentication(builder.Configuration);
                 builder.Services.AddSwaggerServices();
