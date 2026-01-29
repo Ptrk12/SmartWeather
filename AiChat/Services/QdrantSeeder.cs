@@ -2,6 +2,7 @@
 using Qdrant.Client;
 using Qdrant.Client.Grpc;
 using SmartComponents.LocalEmbeddings;
+using System.Text.RegularExpressions;
 
 
 namespace AiChat.Services
@@ -18,11 +19,11 @@ namespace AiChat.Services
             var url = config["Qdrant:Uri"];
             _collectionName = config["Qdrant:CollectionName"];
 
-            if(string.IsNullOrEmpty(url))
+            if (string.IsNullOrEmpty(url))
             {
                 throw new ArgumentNullException("Qdrant URL is not configured");
             }
-            if(string.IsNullOrEmpty(_collectionName))
+            if (string.IsNullOrEmpty(_collectionName))
             {
                 throw new ArgumentNullException("Qdrant Collection Name is not configured");
             }
@@ -47,35 +48,40 @@ namespace AiChat.Services
             var docsPath = Path.Combine(AppContext.BaseDirectory, "KnowledgeBase");
             if (!Directory.Exists(docsPath)) return;
 
-            var files = Directory.GetFiles(docsPath, "*.md"); 
+            var files = Directory.GetFiles(docsPath, "*.md");
             var points = new List<PointStruct>();
 
             foreach (var file in files)
             {
                 var text = await File.ReadAllTextAsync(file);
 
-                var paragraphs = text.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+                string pattern = @"(\r\n|\n)(?=(##|\*\*))";
+                var rawChunks = Regex.Split(text, pattern);
 
-                foreach (var paragraph in paragraphs)
+                foreach (var rawChunk in rawChunks)
                 {
-                    if (paragraph.Length < 10) continue;
+                    if (string.IsNullOrWhiteSpace(rawChunk) || rawChunk.Length < 5)
+                        continue;
 
-                    var embedding = embedder.Embed(paragraph);
+                    var chunk = rawChunk.Trim();
+                    if (chunk.StartsWith("# ") && chunk.Length < 50) continue;
+
+                    var embedding = embedder.Embed(chunk);
 
                     var point = new PointStruct
                     {
                         Id = Guid.NewGuid(),
-
                         Vectors = embedding.Values.ToArray(),
                         Payload = {
-                            ["content"] = paragraph,
+                            ["content"] = chunk,
                             ["source"] = Path.GetFileName(file)
                         }
                     };
                     points.Add(point);
-                }
-            } 
 
+                    Console.WriteLine($"[Seeder] Utworzono punkt ({chunk.Length} znaków): {chunk.Substring(0, Math.Min(30, chunk.Length))}...");
+                }
+            }
             if (points.Any())
             {
                 await _client.UpsertAsync(_collectionName, points);

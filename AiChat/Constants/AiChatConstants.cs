@@ -13,7 +13,10 @@
               "Retrieving historical measurement data with time range constraints (max 30 days)",
               "AI-based forecasting using specific models (LSTM, BiLSTM, RF, ATTN_LSTM) and prediction horizons (1-72 hours)",
               "Management of alert rules, conditions, and threshold values",
-              "Real-time monitoring via event streams (SSE) and retrieving alert history logs"
+              "Real-time monitoring via event streams (SSE) and retrieving alert history logs",
+                "Listing and browsing the user's personal groups and their details",
+            "Listing, searching, and checking the status of devices belonging to the user",
+            "General assistance with navigating and managing the user's weather station network"
             ];
 
     }

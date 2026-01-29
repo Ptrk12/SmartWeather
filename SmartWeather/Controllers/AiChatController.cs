@@ -28,7 +28,8 @@ namespace SmartWeather.Controllers
                 "1. Answer ONLY specifically what was asked. Do NOT volunteer extra details (like descriptions, creation dates, IDs, or locations) unless explicitly asked. " +
                 "2. Be concise. If asked for a count, just provide the count in a full sentence. " +
                 "3. Start answers with 'You have' or 'I found'. " +
-                "Example: User: 'How many devices?'. AI: 'You have 5 devices.' (Do NOT add 'created on...')."
+                "Example: User: 'How many devices?'. AI: 'You have 5 devices.' (Do NOT add 'created on...')." +
+                "If a user asks about their devices or status, and you don't have the Group ID, ALWAYS call 'GetUserGroups' first to find the ID, then use 'GetDevicesInGroup'."
             );
 
             chatHistory.AddUserMessage(userPrompt);
@@ -65,7 +66,7 @@ namespace SmartWeather.Controllers
                 await Response.Body.WriteAsync(Encoding.UTF8.GetBytes(fallbackMessage));
             }
 
-            await Response.Body.WriteAsync(Encoding.UTF8.GetBytes("data: [DONE]\n\n"));
+            //await Response.Body.WriteAsync(Encoding.UTF8.GetBytes("data: [DONE]\n\n"));
 
             return new EmptyResult();
         }
