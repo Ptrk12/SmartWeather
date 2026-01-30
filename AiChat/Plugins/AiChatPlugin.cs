@@ -3,6 +3,8 @@ using Interfaces.Managers;
 using Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.SemanticKernel;
+using Models.responses;
+using Qdrant.Client.Grpc;
 using System.ComponentModel;
 using System.Security;
 
@@ -14,6 +16,7 @@ namespace AiChat.Plugins
             IDeviceManager deviceManager,
             IUserManager userManager,
             IGroupRepository groupRepository,
+            IDeviceRepository deviceRepository,
             IHttpContextAccessor httpContextAccessor
         )
     {
@@ -43,7 +46,7 @@ namespace AiChat.Plugins
 
             var role = await groupRepository.GetUserRoleInGroup(currentUserId, groupId);
 
-            if(string.IsNullOrEmpty(role))
+            if (string.IsNullOrEmpty(role))
             {
                 return "You do not have access to this group";
             }
@@ -56,13 +59,44 @@ namespace AiChat.Plugins
             }
 
             var result = string.Join("\n\n", devices.Select(x =>
-            $"Serial number: {x.SerialNumber}\n" +
-            $"Location: {x.Location}\n" +
-            $"Status: {x.Status}\n" +
-            $"Current Alerts: {string.Join(", ", x.AlertStatuses.Select(a => $"Alert Message: {a.AlertMessage} Alert Sensor type: {a.SensorType}"))}\n" +
-            $"Last Update: {x.LastMeasurement}"));
+            $"- Device ID: {x.Id}\n" +
+            $"- Serial number: {x.SerialNumber}\n" +
+            $"- Location: {x.Location}\n" +
+            $"- Status: {x.Status}\n" +
+            $"- Current Alerts: {string.Join(", ", x.AlertStatuses.Select(a => $"Alert Message: {a.AlertMessage} Alert Sensor type: {a.SensorType}"))}\n" +
+            $"- Last Update: {x.LastMeasurement}"));
 
             return result;
+        }
+
+        [KernelFunction]
+        [Description("Retrieves historical measurement data for a specific device sensor (e.g., temperature, humidity, pressure, pm2_5, pm10)")]
+        public async Task<string> GetDeviceMeasurements(
+            [Description("The ID of the group to which the device belongs")] int groupId,
+            [Description("The unique ID of the device")] int deviceId,
+            [Description("The sensor parameter name. Supported values: 'temperature', 'humidity', 'pressure', 'pm2_5', 'pm10'")] string parameter)
+        {
+            var currentUserId = GetCurrentUserId();
+
+            var isAllowed = await deviceRepository.IsDeviceAllowedForUser(currentUserId, groupId, deviceId);
+
+            if (!isAllowed)
+            {
+                return "You do not have access to this device";
+            }
+
+            var measurements = await deviceManager.GetDeviceMeasurementAsync(deviceId, parameter, null, null);
+
+            if (!measurements.Measurements.Any())
+            {
+                return "No measurements found for this device";
+            }
+
+            var formattedData = measurements.Measurements.Select(x => $"- Time: {x.Key.ToString("yyyy-MM-dd HH:mm")} | Value: {x.Value}");
+
+            var resultString = string.Join("\n", formattedData);
+
+            return $"History for {parameter}:\n{resultString}";
         }
 
         private string GetCurrentUserId()

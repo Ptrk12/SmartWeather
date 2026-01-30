@@ -1,4 +1,5 @@
 ﻿using AiChat.Services;
+using Interfaces.Ai;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
@@ -13,44 +14,19 @@ namespace SmartWeather.Controllers
     public class AiChatController(Kernel kernel, IntentGuard intentGuard) : ControllerBase
     {
         [HttpPost("ask")]
-        public async Task<IActionResult> Ask([FromBody] string userPrompt)
+        public async Task<IActionResult> Ask([FromBody] string userPrompt, [FromServices] IAiChatManager manager)
         {
-            if(!intentGuard.IsTopicAllowed(userPrompt))
-            {
-                return BadRequest("The provided prompt is not allowed");
-            }
-
-            var chatHistory = new ChatHistory();
-
-            chatHistory.AddSystemMessage(
-                "You are a helpful SmartWeather assistant. " +
-                "Rules: " +
-                "1. Answer ONLY specifically what was asked. Do NOT volunteer extra details (like descriptions, creation dates, IDs, or locations) unless explicitly asked. " +
-                "2. Be concise. If asked for a count, just provide the count in a full sentence. " +
-                "3. Start answers with 'You have' or 'I found'. " +
-                "Example: User: 'How many devices?'. AI: 'You have 5 devices.' (Do NOT add 'created on...')." +
-                "If a user asks about their devices or status, and you don't have the Group ID, ALWAYS call 'GetUserGroups' first to find the ID, then use 'GetDevicesInGroup'."
-            );
-
-            chatHistory.AddUserMessage(userPrompt);
-
-            var chatService = kernel.GetRequiredService<IChatCompletionService>();
-            var settings = new PromptExecutionSettings
-            {
-                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() 
-            };
-
             Response.Headers.Append("Content-Type", "text/event-stream");
             Response.Headers.Append("Cache-Control", "no-cache");
             Response.Headers.Append("Connection", "keep-alive");
 
             bool sentAnyContent = false;
 
-            await foreach (var message in chatService.GetStreamingChatMessageContentsAsync(chatHistory, settings, kernel))
+            try
             {
-                if (!string.IsNullOrEmpty(message.Content))
+                await foreach (var contentChunk in manager.GetAiChatResponseStreamAsync(userPrompt))
                 {
-                    var safeContent = message.Content.Replace("\n", " ").Replace("\r", "");
+                    var safeContent = contentChunk.Replace("\n", " ").Replace("\r", "");
 
                     var data = Encoding.UTF8.GetBytes($"data: {safeContent}\n\n");
                     await Response.Body.WriteAsync(data);
@@ -59,14 +35,16 @@ namespace SmartWeather.Controllers
                     sentAnyContent = true;
                 }
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest("The provided prompt is not allowed based on security policy");
+            }
 
             if (!sentAnyContent)
             {
-                var fallbackMessage = "data: I couldn't find any information about that in the documentation.\n\n";
+                var fallbackMessage = "data: I couldn't find any information about that\n\n";
                 await Response.Body.WriteAsync(Encoding.UTF8.GetBytes(fallbackMessage));
             }
-
-            //await Response.Body.WriteAsync(Encoding.UTF8.GetBytes("data: [DONE]\n\n"));
 
             return new EmptyResult();
         }

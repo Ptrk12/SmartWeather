@@ -1,5 +1,6 @@
 ﻿using AiChat.Plugins;
 using AiChat.Services;
+using Interfaces.Ai;
 using Microsoft.SemanticKernel;
 
 namespace SmartWeather.extensions
@@ -12,6 +13,7 @@ namespace SmartWeather.extensions
             services.AddScoped<AiChatPlugin>();
             services.AddScoped<QdrantSeeder>();
             services.AddScoped<KnoweldgeBasePlugin>();
+            services.AddScoped<IAiChatManager, AiChatManager>();
 
 
             services.AddScoped<Kernel>(sp =>
