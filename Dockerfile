@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+COPY ["AiChat/AiChat.csproj", "AiChat/"]
 COPY ["Core/Core.csproj","Core/"]
 COPY ["Interfaces/Interfaces.csproj","Interfaces/"]
 COPY ["Managers/Managers.csproj","Managers/"]
@@ -15,7 +16,7 @@ COPY . .
 WORKDIR "/src/SmartWeather"
 RUN dotnet publish "SmartWeather.csproj" -c Release -o /app/publish
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
