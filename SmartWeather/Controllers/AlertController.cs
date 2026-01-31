@@ -30,7 +30,7 @@ namespace SmartWeather.Controllers
         /// <param name="sensorMetricId">The ID of the sensor metric to attach the rule to (from URL path).</param>
         /// <returns>Returns 201 Created on success, or 409 Conflict with a message on failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpPost("sensor-metric/{sensorMetricId}/alert-rule/add")]
+        [HttpPost("sensor-metric/{sensorMetricId}/alert-rule")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -55,7 +55,7 @@ namespace SmartWeather.Controllers
         /// <param name="alertId">The ID of the alert rule to update (from URL path).</param>
         /// <returns>Returns 201 Created on success, or 409 Conflict with a message on failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpPut("sensor-metric/{sensorMetricId}/alert-rule/{alertId}/update")]
+        [HttpPut("sensor-metric/{sensorMetricId}/alert-rule/{alertId}")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -80,7 +80,7 @@ namespace SmartWeather.Controllers
         /// <param name="alertId">The ID of the alert rule to delete (from URL path).</param>
         /// <returns>Returns 204 on success, or 409 Conflict with a message on failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpDelete("sensor-metric/{sensorMetricId}/alert-rule/{alertId}/delete")]
+        [HttpDelete("sensor-metric/{sensorMetricId}/alert-rule/{alertId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)] 
         [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

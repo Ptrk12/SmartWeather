@@ -32,7 +32,7 @@ namespace SmartWeather.Controllers
         /// <param name="groupId">The ID of the group to which the device is added.</param>
         /// <returns>Returns 201 Created on success, or 409 Conflict on  failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpPost("add")]
+        [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -57,7 +57,7 @@ namespace SmartWeather.Controllers
         /// <param name="groupId">The ID of the group (from URL path).</param>
         /// <returns>Returns 204  on success, or 409 Conflict on failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpPut("{deviceId}/update")]
+        [HttpPut("{deviceId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status409Conflict, Type = typeof(string))]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -98,7 +98,7 @@ namespace SmartWeather.Controllers
         /// <param name="groupId">The ID of the group (from URL path).</param>
         /// <returns>Returns 204 NoContent on success, or 409 on failure.</returns>
         [Authorize(Policy = "Admin")]
-        [HttpDelete("{deviceId}/delete")]
+        [HttpDelete("{deviceId}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]

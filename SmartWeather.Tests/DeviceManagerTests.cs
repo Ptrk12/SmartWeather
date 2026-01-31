@@ -674,7 +674,7 @@ namespace SmartWeather.Tests
         {
             var sut = CreateSut();
 
-            var result = await sut.PredictWeatherParameters(1, "temperature", 100, PredictionModel.attn_lstm.ToString());
+            var result = await sut.PredictWeatherParameters(1, "temperature", 100, PredictionModel.attn_lstm.ToString(), true);
 
             result.Success.Should().BeFalse();
             result.Message.Should().Be("Prediction hours must be between 1 and 72");
@@ -705,7 +705,7 @@ namespace SmartWeather.Tests
 
             SetupHttpClient(HttpStatusCode.OK, predictionResponse);
 
-            var result = await sut.PredictWeatherParameters(1, "temperature", 24, model);
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, model, true);
 
             result.Success.Should().BeTrue();
 
@@ -724,7 +724,7 @@ namespace SmartWeather.Tests
 
             var sut = CreateSut();
 
-            var result = await sut.PredictWeatherParameters(1, "temperature", 100, model);
+            var result = await sut.PredictWeatherParameters(1, "temperature", 100, model,true);
 
             result.Success.Should().BeFalse();
             result.Message.Should().Be("Prediction hours must be between 1 and 72");
@@ -735,7 +735,7 @@ namespace SmartWeather.Tests
         {
             var sut = CreateSut();
 
-            var result = await sut.PredictWeatherParameters(1, "temperature", 24, "NonExistentModel");
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, "NonExistentModel",true);
 
             result.Success.Should().BeFalse();
             result.Message.Should().Be("Invalid prediction model");
@@ -755,7 +755,7 @@ namespace SmartWeather.Tests
 
             _httpClientFactoryMock.Setup(x => x.CreateClient("PredictWeatherClient")).Returns(httpClient);
 
-            var result = await sut.PredictWeatherParameters(1, "temperature", 24, PredictionModel.lstm.ToString());
+            var result = await sut.PredictWeatherParameters(1, "temperature", 24, PredictionModel.lstm.ToString(), true);
 
             result.Success.Should().BeFalse();
             result.Message.Should().Contain("Error calling prediction function");
