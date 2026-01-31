@@ -64,7 +64,8 @@ namespace AiChat.Services
                         continue;
 
                     var chunk = rawChunk.Trim();
-                    if (chunk.StartsWith("# ") && chunk.Length < 50) continue;
+                    if (chunk.StartsWith("# ") && chunk.Length < 50)
+                        continue;
 
                     var embedding = embedder.Embed(chunk);
 

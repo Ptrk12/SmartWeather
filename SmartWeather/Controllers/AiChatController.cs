@@ -3,7 +3,6 @@ using Interfaces.Ai;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.ChatCompletion;
 using System.Text;
 
 namespace SmartWeather.Controllers
@@ -13,7 +12,19 @@ namespace SmartWeather.Controllers
     [Authorize]
     public class AiChatController(Kernel kernel, IntentGuard intentGuard) : ControllerBase
     {
+        /// <summary>
+        /// Submits a prompt to the AI assistant and streams the generated response
+        /// </summary>
+        /// <remarks>
+        /// This endpoint utilizes Server-Sent Events (SSE) with the 'text/event-stream' Content-Type.
+        /// Response chunks are formatted as "data: {content}\n\n".
+        /// Newlines within the content are replaced with spaces to ensure stream integrity.
+        /// </remarks>
+        /// <param name="userPrompt">The text prompt to send to the AI.</param>
+        /// <returns>Returns a 200 OK stream on success, or 400 Bad Request if the prompt violates security policies.</returns>
         [HttpPost("ask")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(string))]
         public async Task<IActionResult> Ask([FromBody] string userPrompt, [FromServices] IAiChatManager manager)
         {
             Response.Headers.Append("Content-Type", "text/event-stream");

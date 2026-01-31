@@ -1,15 +1,19 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Managers.auth;
+using Managers.validation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Models.SqlEntities;
 using Repositories.SqlContext;
+using SmartWeather.filters;
 using System.Reflection;
 using System.Text;
 
 namespace SmartWeather.Extensions
 {
-    public static class AppServiceExtensions
+    public static class IdentityExtensions
     {
         public static IServiceCollection AddIdentityAndAuthentication(this IServiceCollection services, IConfiguration config)
         {
@@ -37,7 +41,21 @@ namespace SmartWeather.Extensions
                     )
                 };
             });
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("AllRoles", policy =>
+                    policy.Requirements.Add(new RoleRequirement("Member", "Admin")));
+
+                options.AddPolicy("Admin", policy =>
+                    policy.Requirements.Add(new RoleRequirement("Admin")));
+            });
+
             services.AddAuthorization();
+
+            services.AddScoped<AuthManager>();
+            services.AddSingleton<ValidationManager>();
+            services.AddScoped<IAuthorizationHandler, RoleHandler>();
 
             return services;
         }

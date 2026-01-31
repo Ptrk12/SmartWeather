@@ -3,8 +3,6 @@ using Interfaces.Managers;
 using Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using Microsoft.SemanticKernel;
-using Models.responses;
-using Qdrant.Client.Grpc;
 using System.ComponentModel;
 using System.Security;
 

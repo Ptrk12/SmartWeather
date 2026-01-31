@@ -5,7 +5,7 @@ using Models.responses;
 
 namespace SmartWeather.Controllers
 {
-    [Route("api/groups/{groupId}/devices/{deviceId}")]
+    [Route("api/group/{groupId}/devices/{deviceId}")]
     [ApiController]
     public class AlertLogsController : ControllerBase
     {
